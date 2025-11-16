@@ -1,0 +1,95 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+
+    // Infection configuration for Tsuku mutation testing
+    "source": {
+        "directories": [
+            "src"
+        ]
+    },
+
+    "logs": {
+        "text": "infection.log",
+        "html": "infection-report.html",
+        "summary": "infection-summary.log",
+        "json": "infection.json",
+        "perMutator": "infection-per-mutator.md"
+    },
+
+    "tmpDir": "build/infection",
+
+    "timeout": 10,
+
+    "mutators": {
+        "@default": true,
+
+        // Ignore mutators that produce false positives
+        "PublicVisibility": false,           // We don't care about visibility changes
+        "ProtectedVisibility": false,        // We don't care about visibility changes
+        "DecrementInteger": false,           // Magic numbers are not worth testing
+        "IncrementInteger": false,           // Magic numbers are not worth testing
+        "UnwrapTrim": false,                 // trim() is a core PHP function, we trust it works
+        "UnwrapUcFirst": false,              // PHP string functions - we trust them
+        "UnwrapUcWords": false,              // PHP string functions - we trust them
+        "UnwrapStrToLower": false,           // PHP string functions - we trust them
+        "UnwrapStrToUpper": false,           // PHP string functions - we trust them
+        "PregMatchRemoveCaret": false,       // Regex anchors are part of the regex itself
+        "PregMatchRemoveDollar": false,      // Regex anchors are part of the regex itself
+        "PregMatchMatches": false,           // Regex matches mutations - trust regex patterns
+        "PregMatchRemoveFlags": false,       // Regex flags are part of the pattern definition
+        "PregQuote": false,                  // preg_quote is about escaping, not logic
+        "LogicalAnd": false,                 // Trust && logic - changing to || is not meaningful
+        "LogicalOr": false,                  // Trust || logic - changing to && is not meaningful
+        "LogicalAndSingleSubExprNegation": false,  // Trust AND expression negations
+        "LogicalOrSingleSubExprNegation": false,   // Trust OR expression negations
+        "LogicalNot": false,                 // Trust ! negations - don't flip logic
+        "IfNegation": false,                 // Trust if conditions - don't negate them
+        "ElseIfNegation": false,             // Trust elseif conditions - don't negate them
+        "Ternary": false,                    // Trust ternary expressions - don't swap branches
+        "Break_": false,                     // Trust break statements - don't change to continue
+        "Continue_": false,                  // Trust continue statements - don't change to break
+        "ReturnRemoval": false,              // Trust return removal logic
+        "Identical": false,                  // Trust === comparisons - don't change to !==
+        "NotIdentical": false,               // Trust !== comparisons - don't change to ===
+        "Equal": false,                      // Trust == comparisons
+        "NotEqual": false,                   // Trust != comparisons
+        "UnwrapArrayMerge": false,           // Trust array_merge usage - don't unwrap
+        "CastFloat": false,                  // Trust float casting - don't change types
+        "CastInt": false,                    // Trust int casting - don't change types
+        "CastString": false,                 // Trust string casting - don't change types
+        "For_": false,                       // Trust for loop conditions - don't mutate
+        "TrueValue": false,                  // Trust true values - don't change to false
+        "FalseValue": false,                 // Trust false values - don't change to true
+        "LessThan": false,                   // Trust < comparisons - don't change to <=
+        "LogicalAndAllSubExprNegation": false, // Don't negate all subexpressions in AND
+        "LogicalOrNegation": false,          // Don't negate OR expressions
+        "Minus": false,                      // Trust - operations in array indexing
+        "Plus": false,                       // Trust + operations in array indexing
+        "ArrayOneItem": false,               // Trust array returns - don't slice to one item
+        "Coalesce": false,                   // Trust ?? operator - don't reverse operands
+        "FunctionCallRemoval": false,        // Don't remove function calls - trust they're needed
+        "MethodCallRemoval": false,          // Don't remove method calls like $this->register()
+        "UnwrapSubstr": false,               // Don't unwrap substr() calls - trust the implementation
+        "RoundingFamily": false,             // Don't swap rounding functions (round/floor/ceil)
+        "Concat": false,                     // Trust string concatenation in regex patterns
+        "ConcatOperandRemoval": false,       // Don't remove concat operands in regex building
+        "MatchArmRemoval": false,            // Don't remove match arms - especially error handling
+        "ArrayItem": false,                  // Don't mutate array structure
+        "SpreadOneItem": false,              // Don't mutate array spread operator
+        "Increment": false,                  // Trust ++ operations (loop counters, depth tracking)
+        "Decrement": false,                  // Trust -- operations (loop counters, depth tracking)
+        "AssignmentEqual": false             // Don't swap assignment operators
+    },
+
+    "testFramework": "phpunit",
+
+    "phpUnit": {
+        "configDir": ".",
+        "customPath": "vendor/bin/phpunit"
+    },
+
+    "minMsi": 70,        // Minimum Mutation Score Indicator (70%+)
+    "minCoveredMsi": 80,  // Minimum Covered Code MSI (80%+)
+
+    "initialTestsPhpOptions": "-d pcov.enabled=1 -d pcov.directory=/home/jakub/qoliber-open-source/tsuku/src"
+}

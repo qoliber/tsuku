@@ -1,0 +1,16 @@
+/vendor/
+composer.lock
+.phpunit.result.cache
+.phpunit.cache/
+.idea/
+.vscode/
+
+# PHP
+vendor/
+
+# VitePress
+vitepress/*
+vitepress/node_modules/
+vitepress/.vitepress/cache/
+vitepress/.vitepress/dist/
+vitepress/package-lock.json

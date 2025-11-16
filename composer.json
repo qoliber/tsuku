@@ -1,0 +1,48 @@
+{
+    "name": "qoliber/tsuku",
+    "description": "A lightweight PHP templating library for transforming data into multiple formats (CSV, XML, TSV, etc.) with XSLT-like simplicity",
+    "type": "library",
+    "keywords": ["template", "csv", "xml", "tsv", "transformation", "ecommerce", "data-export"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jakub Winkler",
+            "homepage": "https://qoliber.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1"
+    },
+    "require-dev": {
+        "infection/infection": "^0.31.9",
+        "phpstan/phpstan": "^1.10",
+        "phpunit/phpunit": "^10.0",
+        "squizlabs/php_codesniffer": "^3.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "Qoliber\\Tsuku\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Qoliber\\Tsuku\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:mutation": "infection --threads=4 --min-msi=80 --min-covered-msi=90",
+        "test:coverage": "phpunit --coverage-html coverage",
+        "analyse": "phpstan analyse src tests --level=max",
+        "cs:check": "phpcs --standard=PSR12 src tests",
+        "cs:fix": "phpcbf --standard=PSR12 src tests"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "infection/extension-installer": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
