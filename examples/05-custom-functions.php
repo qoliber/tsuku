@@ -12,7 +12,7 @@ $tsuku = new Tsuku();
 
 // Example 1: Register a simple custom function
 echo "1. Simple Custom Function:\n";
-$tsuku->registerFunction('greet', function(string $name): string {
+$tsuku->registerFunction('greet', function (string $name): string {
     return "Hello, {$name}!";
 });
 
@@ -22,8 +22,8 @@ echo "$result\n\n";
 
 // Example 2: Register function with multiple arguments
 echo "2. Multi-argument Function:\n";
-$tsuku->registerFunction('currency', function(float $amount, string $currency = 'USD'): string {
-    return match($currency) {
+$tsuku->registerFunction('currency', function (float $amount, string $currency = 'USD'): string {
+    return match ($currency) {
         'USD' => '$' . number_format($amount, 2),
         'EUR' => '€' . number_format($amount, 2),
         'GBP' => '£' . number_format($amount, 2),
@@ -37,7 +37,7 @@ echo "$result2\n\n";
 
 // Example 3: Register function that returns HTML
 echo "3. HTML-generating Function:\n";
-$tsuku->registerFunction('badge', function(string $text, string $color = 'blue'): string {
+$tsuku->registerFunction('badge', function (string $text, string $color = 'blue'): string {
     return "<span class=\"badge badge-{$color}\">{$text}</span>";
 });
 
@@ -47,7 +47,7 @@ echo "$result3\n\n";
 
 // Example 4: Register function that works with arrays
 echo "4. Array-processing Function:\n";
-$tsuku->registerFunction('pluck', function(array $items, string $key): array {
+$tsuku->registerFunction('pluck', function (array $items, string $key): array {
     return array_column($items, $key);
 });
 
@@ -63,7 +63,7 @@ echo "$result4\n\n";
 
 // Example 5: Register function with variable arguments
 echo "5. Variadic Function:\n";
-$tsuku->registerFunction('format_list', function(...$items): string {
+$tsuku->registerFunction('format_list', function (...$items): string {
     if (count($items) === 0) {
         return '';
     }
@@ -82,7 +82,7 @@ echo "$result5\n\n";
 echo "6. Closure-based Function with External Data:\n";
 $config = ['site_name' => 'My Website', 'domain' => 'example.com'];
 
-$tsuku->registerFunction('site_url', function(string $path = '') use ($config): string {
+$tsuku->registerFunction('site_url', function (string $path = '') use ($config): string {
     return 'https://' . $config['domain'] . '/' . ltrim($path, '/');
 });
 
@@ -92,7 +92,7 @@ echo "$result6\n\n";
 
 // Example 7: Register function that formats dates
 echo "7. Date Formatting Function:\n";
-$tsuku->registerFunction('format_date', function(string|int $date, string $format = 'Y-m-d'): string {
+$tsuku->registerFunction('format_date', function (string|int $date, string $format = 'Y-m-d'): string {
     $timestamp = is_numeric($date) ? (int)$date : strtotime($date);
     return date($format, $timestamp);
 });
@@ -103,7 +103,7 @@ echo "$result7\n\n";
 
 // Example 8: Chaining custom functions
 echo "8. Chained Custom Functions:\n";
-$tsuku->registerFunction('slug', function(string $text): string {
+$tsuku->registerFunction('slug', function (string $text): string {
     return strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', trim($text)));
 });
 

@@ -233,8 +233,10 @@ class Compiler implements NodeVisitor
         $expression = trim($expression);
 
         // Check if it's a quoted string
-        if ((str_starts_with($expression, '"') && str_ends_with($expression, '"'))
-            || (str_starts_with($expression, "'") && str_ends_with($expression, "'"))) {
+        if (
+            (str_starts_with($expression, '"') && str_ends_with($expression, '"'))
+            || (str_starts_with($expression, "'") && str_ends_with($expression, "'"))
+        ) {
             return substr($expression, 1, -1);
         }
 

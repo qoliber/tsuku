@@ -79,8 +79,7 @@ class FunctionRegistry
         $this->register('trim', fn($str) => trim((string) $str));
         $this->register('concat', fn(...$args) => implode('', $args));
         $this->register('substr', fn($str, $start, $length = null) =>
-            $length !== null ? substr($str, (int) $start, (int) $length) : substr($str, (int) $start)
-        );
+            $length !== null ? substr($str, (int) $start, (int) $length) : substr($str, (int) $start));
         $this->register('replace', fn($str, $search, $replace) => str_replace($search, $replace, $str));
 
         // Number functions
@@ -89,16 +88,13 @@ class FunctionRegistry
         $this->register('ceil', fn($num) => ceil((float) $num));
         $this->register('floor', fn($num) => floor((float) $num));
         $this->register('number_format', fn($num, $decimals = 0, $decPoint = '.', $thousandsSep = ',') =>
-            number_format((float) $num, (int) $decimals, $decPoint, $thousandsSep)
-        );
+            number_format((float) $num, (int) $decimals, $decPoint, $thousandsSep));
         $this->register('number', fn($num, $decimals = 0, $decPoint = '.', $thousandsSep = ',') =>
-            number_format((float) $num, (int) $decimals, $decPoint, $thousandsSep)
-        );
+            number_format((float) $num, (int) $decimals, $decPoint, $thousandsSep));
 
         // Date functions
         $this->register('date', fn($format, $timestamp = null) =>
-            date($format, $timestamp !== null ? (int) $timestamp : time())
-        );
+            date($format, $timestamp !== null ? (int) $timestamp : time()));
         $this->register('strtotime', fn($str) => strtotime($str));
 
         // Type functions
@@ -107,14 +103,14 @@ class FunctionRegistry
 
         // Array functions
         $this->register('join', fn($array, $glue = ',') => implode($glue, (array) $array));
-        $this->register('first', function($array) {
+        $this->register('first', function ($array) {
             if (!is_array($array) || count($array) === 0) {
                 return null;
             }
             $values = array_values($array);
             return $values[0];
         });
-        $this->register('last', function($array) {
+        $this->register('last', function ($array) {
             if (!is_array($array) || count($array) === 0) {
                 return null;
             }
@@ -123,7 +119,7 @@ class FunctionRegistry
         });
 
         // Escaping functions
-        $this->register('escape', fn($str, $type = 'html') => match($type) {
+        $this->register('escape', fn($str, $type = 'html') => match ($type) {
             'html' => htmlspecialchars((string) $str, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'xml' => htmlspecialchars((string) $str, ENT_QUOTES | ENT_XML1, 'UTF-8'),
             'json' => json_encode((string) $str, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP),
@@ -139,7 +135,6 @@ class FunctionRegistry
         $this->register('url', fn($str) => rawurlencode((string) $str));
         $this->register('csv', fn($str) => str_contains((string) $str, ',') || str_contains((string) $str, '"') || str_contains((string) $str, "\n")
             ? '"' . str_replace('"', '""', (string) $str) . '"'
-            : (string) $str
-        );
+            : (string) $str);
     }
 }

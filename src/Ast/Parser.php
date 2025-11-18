@@ -346,6 +346,12 @@ class Parser
         while (!$this->isAtEnd() && $this->peek()->type !== TokenType::DIRECTIVE_END) {
             $currentToken = $this->peek();
 
+            // Skip whitespace-only text tokens (for indentation support)
+            if ($currentToken->type === TokenType::TEXT && trim($currentToken->value) === '') {
+                $this->advance();
+                continue;
+            }
+
             if ($currentToken->type === TokenType::DIRECTIVE_CASE) {
                 $cases[] = $this->parseCase();
             } elseif ($currentToken->type === TokenType::DIRECTIVE_DEFAULT) {
@@ -398,10 +404,12 @@ class Parser
     {
         $children = [];
 
-        while (!$this->isAtEnd()
+        while (
+            !$this->isAtEnd()
             && $this->peek()->type !== TokenType::DIRECTIVE_END
             && $this->peek()->type !== TokenType::DIRECTIVE_CASE
-            && $this->peek()->type !== TokenType::DIRECTIVE_DEFAULT) {
+            && $this->peek()->type !== TokenType::DIRECTIVE_DEFAULT
+        ) {
             $node = $this->parseNode();
             if ($node !== null) {
                 $children[] = $node;
@@ -415,14 +423,17 @@ class Parser
      * Parse nodes until we hit @else or @end
      *
      * @return array<\Qoliber\Tsuku\Ast\Node>
+     * @throws \Qoliber\Tsuku\Exception\ParseException
      */
     private function parseUntilElseOrEnd(): array
     {
         $children = [];
 
-        while (!$this->isAtEnd()
+        while (
+            !$this->isAtEnd()
             && $this->peek()->type !== TokenType::DIRECTIVE_END
-            && $this->peek()->type !== TokenType::DIRECTIVE_ELSE) {
+            && $this->peek()->type !== TokenType::DIRECTIVE_ELSE
+        ) {
             $node = $this->parseNode();
             if ($node !== null) {
                 $children[] = $node;
@@ -436,6 +447,7 @@ class Parser
      * Parse nodes until we hit @end
      *
      * @return array<\Qoliber\Tsuku\Ast\Node>
+     * @throws \Qoliber\Tsuku\Exception\ParseException
      */
     private function parseUntilEnd(): array
     {

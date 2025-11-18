@@ -100,6 +100,49 @@ Complex real-world scenarios:
 @if(price >= 100)
 ```
 
+## Production-Ready Format Examples ⭐ NEW
+
+### 07-csv-export.php
+Comprehensive CSV export examples:
+- Basic product export with proper escaping
+- Multi-category product export
+- Customer order export
+- Inventory reports with low stock alerts
+- Sales reports with calculations
+
+### 08-xml-export.php
+Real-world XML generation:
+- Product catalog XML feeds
+- Google Shopping feed format
+- XML Sitemap generation
+- RSS feed generation
+- SOAP web service responses
+
+### 09-yaml-export.php
+YAML configuration file generation:
+- Application configuration files
+- Docker Compose files
+- Kubernetes deployment manifests
+- GitHub Actions workflows
+- OpenAPI/Swagger specifications
+
+### 10-html-generation.php
+HTML generation from complex objects:
+- Product cards with ratings and badges
+- User profile dashboards
+- Blog article lists with metadata
+- E-commerce checkout forms
+- HTML email templates
+
+### 11-json-generation.php
+JSON API response generation:
+- REST API product list responses
+- Error response formatting
+- Complex nested user profiles
+- JSON-LD structured data (SEO)
+- GraphQL-like response structures
+- Webhook payloads
+
 ## Tips
 
 1. **Dot Notation**: Works seamlessly with both arrays and objects
@@ -107,3 +150,5 @@ Complex real-world scenarios:
 3. **Type Flexibility**: Mix arrays, objects, and primitives freely
 4. **Smart Getters**: Private properties accessible via getter methods
 5. **Null Safety**: Missing values return empty strings (configurable with StrictnessMode)
+6. **Security**: Always use escaping functions (@html, @xml, @csv, @json) for user input
+7. **Format-Specific**: Each format has its own example with best practices
