@@ -9,7 +9,7 @@
  * @license   MIT
  */
 
- declare(strict_types=1);
+declare(strict_types=1);
 
 namespace Qoliber\Tsuku\Lexer;
 

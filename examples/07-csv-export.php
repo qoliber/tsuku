@@ -21,7 +21,10 @@ echo str_repeat('-', 60) . "\n";
 
 $template1 = 'SKU,Name,Price,Stock
 @for(products as product)
-@csv(product.sku),@csv(product.name),$@number(product.price, 2),{product.stock}
+@csv(product.sku),\
+@csv(product.name),\
+$@number(product.price, 2),\
+{product.stock}
 @end';
 
 $data1 = [
@@ -42,7 +45,13 @@ echo str_repeat('-', 60) . "\n";
 $template2 = 'Category,SKU,Name,Description,Price,Stock,Status
 @for(categories as category)
   @for(category.products as product)
-@csv(category.name),@csv(product.sku),@csv(product.name),@csv(product.description),$@number(product.price, 2),{product.stock},@match(product.status) @case("active") Active @case("discontinued") Discontinued @default Unknown @end
+@csv(category.name),\
+@csv(product.sku),\
+@csv(product.name),\
+@csv(product.description),\
+$@number(product.price, 2),\
+{product.stock},\
+@match(product.status) @case("active") Active @case("discontinued") Discontinued @default Unknown @end
   @end
 @end';
 
@@ -95,7 +104,15 @@ echo str_repeat('-', 60) . "\n";
 $template3 = 'Order ID,Date,Customer Name,Customer Email,Product,Quantity,Unit Price,Total,Status
 @for(orders as order)
   @for(order.items as item)
-{order.id},@date("Y-m-d", order.date),@csv(order.customer.name),@csv(order.customer.email),@csv(item.product),{item.quantity},$@number(item.price, 2),$@number(item.quantity * item.price, 2),{order.status}
+{order.id},\
+@date("Y-m-d", order.date),\
+@csv(order.customer.name),\
+@csv(order.customer.email),\
+@csv(item.product),\
+{item.quantity},\
+$@number(item.price, 2),\
+$@number(item.quantity * item.price, 2),\
+{order.status}
   @end
 @end';
 
@@ -138,7 +155,11 @@ echo str_repeat('-', 60) . "\n";
 
 $template4 = 'SKU,Product,Current Stock,Reorder Point,Alert
 @for(inventory as item)
-@csv(item.sku),@csv(item.name),{item.stock},{item.reorder_point},@if(item.stock <= item.reorder_point)
+@csv(item.sku),\
+@csv(item.name),\
+{item.stock},\
+{item.reorder_point},\
+@if(item.stock <= item.reorder_point)
 LOW STOCK - REORDER NOW
 @else
 OK
@@ -162,7 +183,11 @@ echo str_repeat('-', 60) . "\n";
 
 $template5 = 'Product,Units Sold,Unit Price,Revenue,Profit Margin
 @for(sales as item)
-@csv(item.product),{item.units_sold},$@number(item.unit_price, 2),$@number(item.units_sold * item.unit_price, 2),@number((item.unit_price - item.cost) / item.unit_price * 100, 1)%
+@csv(item.product),\
+{item.units_sold},\
+$@number(item.unit_price, 2),\
+$@number(item.units_sold * item.unit_price, 2),\
+@number((item.unit_price - item.cost) / item.unit_price * 100, 1)%
 @end';
 
 $data5 = [

@@ -9,7 +9,7 @@
  * @license   MIT
  */
 
- declare(strict_types=1);
+declare(strict_types=1);
 
 namespace Qoliber\Tsuku\Lexer;
 
@@ -21,11 +21,26 @@ class Lexer
     private int $line = 1;
     private int $column = 1;
     private int $length;
+    private readonly string $input;
 
     public function __construct(
-        private readonly string $input,
+        string $input,
     ) {
-        $this->length = strlen($input);
+        // Preprocess: handle line continuation (backslash before newline)
+        $this->input = $this->preprocessLineContinuation($input);
+        $this->length = strlen($this->input);
+    }
+
+    /**
+     * Preprocess input to handle line continuation (backslash + newline)
+     *
+     * @param string $input The raw template input
+     * @return string Processed input with line continuations removed
+     */
+    private function preprocessLineContinuation(string $input): string
+    {
+        // Replace backslash followed by newline (\n or \r\n) with nothing
+        return preg_replace('/\\\\(?:\r\n|\n|\r)/', '', $input);
     }
 
     /**
