@@ -20,6 +20,30 @@ Perfect for e-commerce exports, API responses, configuration files, and data tra
 - 📦 **Preserves formatting**: Exact whitespace and newline control
 - ⚡ **Fast**: Single-pass compilation, efficient AST walking
 - 🔒 **Type-safe**: Full PHP 8.1+ type hints and strict types
+
+## Performance
+
+Tsuku is **fast** - designed for high-volume data transformations:
+
+| Benchmark | Performance | Throughput |
+|-----------|-------------|------------|
+| **Simple templates** | 0.2ms per render | **~5,000 renders/sec** |
+| **Complex templates** | 1.0ms per render | **~1,000 renders/sec** |
+| **1,000 variables** | 1.8ms per render | **~550 renders/sec** |
+| **CSV export (1,000 products)** | 3.9ms per export | **~250 exports/sec** |
+
+**Real-world capacity:**
+- **250,000+ products/second** for CSV exports
+- Sub-millisecond rendering for typical templates
+- Low memory footprint (~60KB per render)
+
+Run benchmarks yourself:
+```bash
+php benchmarks/run-all.php
+```
+
+See [benchmarks/](benchmarks/) for detailed performance tests.
+
 ## Requirements
 
 - PHP 8.1 or higher
