@@ -17,6 +17,20 @@ use Qoliber\Tsuku\Exception\ParseException;
 
 class Lexer
 {
+    // Pre-compiled regex patterns for better performance
+    private const PATTERN_LINE_CONTINUATION = '/\\\\(?:\r\n|\n|\r)/';
+    private const PATTERN_FOR = '/^@for\s*\(/';
+    private const PATTERN_IF = '/^@if\s*\(/';
+    private const PATTERN_UNLESS = '/^@unless\s*\(/';
+    private const PATTERN_MATCH = '/^@match\s*\(/';
+    private const PATTERN_CASE = '/^@case\s*\(/';
+    private const PATTERN_DEFAULT = '/^@default(?!\s*\()/';
+    private const PATTERN_ELSE = '/^@else/';
+    private const PATTERN_END = '/^@end/';
+    private const PATTERN_TERNARY = '/^@\?\{(.+?)\}/s';
+    private const PATTERN_FUNCTION = '/^@([a-zA-Z_][a-zA-Z0-9_]*)\(/';
+    private const PATTERN_VARIABLE = '/^\{([a-zA-Z_][a-zA-Z0-9_\.]*)\}/';
+
     private int $position = 0;
     private int $line = 1;
     private int $column = 1;
@@ -40,7 +54,7 @@ class Lexer
     private function preprocessLineContinuation(string $input): string
     {
         // Replace backslash followed by newline (\n or \r\n) with nothing
-        return preg_replace('/\\\\(?:\r\n|\n|\r)/', '', $input);
+        return preg_replace(self::PATTERN_LINE_CONTINUATION, '', $input);
     }
 
     /**
@@ -101,7 +115,7 @@ class Lexer
         $remaining = substr($this->input, $this->position);
 
         // Try to match directives: @for(...), @if(...), @unless(...), @end
-        if (preg_match('/^@for\s*\(/', $remaining, $matches)) {
+        if (preg_match(self::PATTERN_FOR, $remaining, $matches)) {
             $startPos = strlen($matches[0]) - 1;
             $args = $this->extractBalancedParentheses($remaining, $startPos);
             if ($args !== null) {
@@ -112,7 +126,7 @@ class Lexer
             }
         }
 
-        if (preg_match('/^@if\s*\(/', $remaining, $matches)) {
+        if (preg_match(self::PATTERN_IF, $remaining, $matches)) {
             $startPos = strlen($matches[0]) - 1;
             $args = $this->extractBalancedParentheses($remaining, $startPos);
             if ($args !== null) {
@@ -123,7 +137,7 @@ class Lexer
             }
         }
 
-        if (preg_match('/^@unless\s*\(/', $remaining, $matches)) {
+        if (preg_match(self::PATTERN_UNLESS, $remaining, $matches)) {
             $startPos = strlen($matches[0]) - 1;
             $args = $this->extractBalancedParentheses($remaining, $startPos);
             if ($args !== null) {
@@ -134,7 +148,7 @@ class Lexer
             }
         }
 
-        if (preg_match('/^@match\s*\(/', $remaining, $matches)) {
+        if (preg_match(self::PATTERN_MATCH, $remaining, $matches)) {
             $startPos = strlen($matches[0]) - 1;
             $args = $this->extractBalancedParentheses($remaining, $startPos);
             if ($args !== null) {
@@ -145,7 +159,7 @@ class Lexer
             }
         }
 
-        if (preg_match('/^@case\s*\(/', $remaining, $matches)) {
+        if (preg_match(self::PATTERN_CASE, $remaining, $matches)) {
             $startPos = strlen($matches[0]) - 1;
             $args = $this->extractBalancedParentheses($remaining, $startPos);
             if ($args !== null) {
@@ -157,26 +171,26 @@ class Lexer
         }
 
         // Match @default directive (NOT followed by opening parenthesis)
-        if (preg_match('/^@default(?!\s*\()/', $remaining)) {
+        if (preg_match(self::PATTERN_DEFAULT, $remaining)) {
             $this->advance(strlen('@default'));
             $this->consumeTrailingNewline();
             return new Token(TokenType::DIRECTIVE_DEFAULT, '', $startLine, $startColumn);
         }
 
-        if (preg_match('/^@else/', $remaining)) {
+        if (preg_match(self::PATTERN_ELSE, $remaining)) {
             $this->advance(strlen('@else'));
             $this->consumeTrailingNewline();
             return new Token(TokenType::DIRECTIVE_ELSE, '', $startLine, $startColumn);
         }
 
-        if (preg_match('/^@end/', $remaining)) {
+        if (preg_match(self::PATTERN_END, $remaining)) {
             $this->advance(strlen('@end'));
             $this->consumeTrailingNewline();
             return new Token(TokenType::DIRECTIVE_END, '', $startLine, $startColumn);
         }
 
         // Try to match ternary: @?{condition "true" : "false"}
-        if (preg_match('/^@\?\{(.+?)\}/s', $remaining, $matches)) {
+        if (preg_match(self::PATTERN_TERNARY, $remaining, $matches)) {
             $fullMatch = $matches[0];
             $content = $matches[1];
             $this->advance(strlen($fullMatch));
@@ -184,7 +198,7 @@ class Lexer
         }
 
         // Try to match function: @functionName(args)
-        if (preg_match('/^@([a-zA-Z_][a-zA-Z0-9_]*)\(/', $remaining, $matches)) {
+        if (preg_match(self::PATTERN_FUNCTION, $remaining, $matches)) {
             $functionName = $matches[1];
             $startPos = strlen($matches[0]);
 
@@ -261,7 +275,7 @@ class Lexer
         $remaining = substr($this->input, $this->position);
 
         // Check for simple variable: {word} or {word.word}
-        if (preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_\.]*)\}/', $remaining, $matches)) {
+        if (preg_match(self::PATTERN_VARIABLE, $remaining, $matches)) {
             $fullMatch = $matches[0];
             $varName = $matches[1];
             $this->advance(strlen($fullMatch));
@@ -295,7 +309,7 @@ class Lexer
             if ($char === '{') {
                 // Lookahead to see if it matches variable pattern
                 $remaining = substr($this->input, $this->position);
-                if (preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_\.]*)\}/', $remaining)) {
+                if (preg_match(self::PATTERN_VARIABLE, $remaining)) {
                     // It's a variable, stop here
                     break;
                 }

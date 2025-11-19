@@ -4,6 +4,8 @@
 
 Tsuku is a powerful template processing library built with a clean **Lexer → Parser → Compiler** architecture. Transform your data into CSV, XML, JSON, XSD, or any text format you need using simple, intuitive templates.
 
+**Born out of frustration with XSLT's complexity.** Tsuku provides a simple, intuitive syntax that's nearly impossible to mess up, with **better performance** in real-world scenarios.
+
 Perfect for e-commerce exports, API responses, configuration files, and data transformations.
 
 ## Features
@@ -18,8 +20,9 @@ Perfect for e-commerce exports, API responses, configuration files, and data tra
 - 🚀 **PHP 8.1+**: Modern PHP with zero dependencies
 - ✅ **Production-ready**: 196 tests, 423 assertions, 88% mutation score
 - 📦 **Preserves formatting**: Exact whitespace and newline control
-- ⚡ **Fast**: Single-pass compilation, efficient AST walking
+- ⚡ **Fast**: 1.29x faster than XSLT in real-world scenarios (no XML overhead)
 - 🔒 **Type-safe**: Full PHP 8.1+ type hints and strict types
+- 😊 **Easy**: 5-minute learning curve vs hours/days for XSLT
 
 ## Performance
 
@@ -536,6 +539,38 @@ This architecture is the same used by:
 - [Compilers: Principles, Techniques, and Tools](https://en.wikipedia.org/wiki/Compilers:_Principles,_Techniques,_and_Tools) (Dragon Book)
 - [Abstract Syntax Tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree)
 - [Visitor Pattern](https://refactoring.guru/design-patterns/visitor)
+
+## Why Tsuku Instead of XSLT?
+
+**Tsuku was created out of frustration with XSLT's steep learning curve and error-prone XML syntax.**
+
+### The Problem with XSLT:
+- 😤 **Steep learning curve** - Hours to days of frustration
+- 😖 **Easy to make mistakes** - One wrong `&gt;` breaks everything
+- 😫 **Cryptic error messages** - "Start tag expected, '<' not found"
+- 😩 **Verbose XML syntax** - 3.25x more code than Tsuku
+- 😰 **Slower in practice** - 44% XML conversion overhead
+
+### The Tsuku Solution:
+- ✅ **5-minute learning curve** - Intuitive syntax that just works
+- ✅ **Hard to mess up** - Clear, readable templates
+- ✅ **Clear error messages** - "Variable 'price' not found at line 1"
+- ✅ **Minimal code** - Templates look like the output
+- ✅ **Faster in real-world** - 1.29x faster (no XML overhead)
+
+**See the full comparison:** [COMPARE.md](COMPARE.md)
+**See performance benchmarks:** [BENCHMARKS.md](BENCHMARKS.md)
+
+```php
+// Tsuku - 12 lines, readable, works directly with arrays
+$template = 'SKU,Name,Price
+@for(products as p)
+{p.sku},{p.name},$@number(p.price, 2)
+@end';
+
+// XSLT - 39 lines, verbose XML, requires XML conversion
+// (See COMPARE.md for the painful details)
+```
 
 ## Development
 

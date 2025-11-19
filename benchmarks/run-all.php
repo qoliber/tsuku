@@ -24,6 +24,7 @@ $benchmarks = [
     'complex.php' => 'Complex Template',
     'variables.php' => 'Many Variables',
     'csv-export.php' => 'CSV Export (Real-World)',
+    'large-nested.php' => 'Large Nested Dataset (5,000 products)',
 ];
 
 foreach ($benchmarks as $file => $name) {

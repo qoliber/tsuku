@@ -51,7 +51,7 @@ class FunctionRegistry
             throw new TsukuException("Function '{$name}' not found");
         }
 
-        return call_user_func_array($this->functions[$name], $arguments);
+        return ($this->functions[$name])(...$arguments);
     }
 
     /**

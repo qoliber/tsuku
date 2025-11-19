@@ -69,11 +69,11 @@ class Compiler implements NodeVisitor
      */
     public function visitTemplate(TemplateNode $node): string
     {
-        $output = '';
+        $parts = [];
         foreach ($node->children as $child) {
-            $output .= $child->accept($this);
+            $parts[] = $child->accept($this);
         }
-        return $output;
+        return implode('', $parts);
     }
 
     /**
@@ -119,7 +119,7 @@ class Compiler implements NodeVisitor
             return '';
         }
 
-        $output = '';
+        $parts = [];
         $savedData = $this->data;
 
         foreach ($items as $key => $item) {
@@ -131,14 +131,14 @@ class Compiler implements NodeVisitor
 
             // Execute children
             foreach ($node->children as $child) {
-                $output .= $child->accept($this);
+                $parts[] = $child->accept($this);
             }
         }
 
         // Restore original data
         $this->data = $savedData;
 
-        return $output;
+        return implode('', $parts);
     }
 
     /**
@@ -156,21 +156,21 @@ class Compiler implements NodeVisitor
             $result = !$result;
         }
 
-        $output = '';
+        $parts = [];
 
         if ($result) {
             // Execute if/unless children
             foreach ($node->children as $child) {
-                $output .= $child->accept($this);
+                $parts[] = $child->accept($this);
             }
         } else {
             // Execute else children
             foreach ($node->elseChildren as $child) {
-                $output .= $child->accept($this);
+                $parts[] = $child->accept($this);
             }
         }
 
-        return $output;
+        return implode('', $parts);
     }
 
     /**
@@ -193,21 +193,21 @@ class Compiler implements NodeVisitor
                 // Use loose comparison for flexibility
                 if ($matchValue == $evaluatedCaseValue) {
                     // Execute this case's children
-                    $output = '';
+                    $parts = [];
                     foreach ($case->children as $child) {
-                        $output .= $child->accept($this);
+                        $parts[] = $child->accept($this);
                     }
-                    return $output;
+                    return implode('', $parts);
                 }
             }
         }
 
         // No case matched, execute default if present
-        $output = '';
+        $parts = [];
         foreach ($node->defaultChildren as $child) {
-            $output .= $child->accept($this);
+            $parts[] = $child->accept($this);
         }
-        return $output;
+        return implode('', $parts);
     }
 
     /**
@@ -541,10 +541,15 @@ class Compiler implements NodeVisitor
             return $value->$key();
         }
 
-        // Strategy 5: Object property - only try if accessible (public)
+        // Strategy 5: Object property - try direct access first (faster), then reflection
         if (is_object($value)) {
+            // Try direct property access first - this is much faster if property is public
+            if (isset($value->$key)) {
+                return $value->$key;
+            }
+
+            // Fall back to reflection for edge cases
             try {
-                // Use reflection to check if property is public
                 $reflection = new \ReflectionClass($value);
                 if ($reflection->hasProperty($key)) {
                     $property = $reflection->getProperty($key);
