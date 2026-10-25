@@ -5,6 +5,33 @@ All notable changes to Tsuku will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+No library changes (nothing in `src/`): documentation, examples and the benchmark runner only.
+
+### Fixed
+- `examples/`: every file runs without errors and prints what it claims.
+  - 11 (JSON) separates array items with `@for(items as item, index)@if(index > 0),@end` instead of
+    `length(...) - 1` (a ParseException since 1.4.0), quotes its timestamps (`@json(@date("c"))`), writes
+    `"@@context"` / `"@@type"` for JSON-LD and uses `@if(...)...@else null@end` for optional objects; all six
+    responses are valid JSON.
+  - 07-csv-export, 07-number-formatting-and-escaping and 10-html-generation compute line totals, revenue and
+    margins in PHP; template arithmetic such as `@number(qty * price, 2)` printed `$0.00` / `0.0%`.
+  - CSV prices use `@number(value, 2, ".", "")`: `1,299.50` split the price into two columns.
+  - 04 uses `@?{order.paid "[PAID]" : "[UNPAID]"}` instead of the non-existent `@ternary()` (it printed nothing).
+  - 06 labels its function example as a function (it said "custom directive") and shows Magento `{{...}}`
+    directives passing through; 07-csv-export and 10 no longer print stray spaces around `@match` results;
+    08 prints `in_stock` / `out_of_stock` without surrounding spaces; 09 omits `image:` for a service built from a
+    Dockerfile.
+- README: mutation score 98.7% (not 95%); benchmark numbers re-measured with `php -n`; object lookup order
+  `getX()`, `isX()`, `x()`, then the public property; the CSV example prints valid CSV; new JSON example with the
+  leading-separator idiom; `@concat`, `@strtotime`, `@number_format` listed; templates have no arithmetic.
+- `benchmarks/run-all.php` starts every benchmark with its own PHP binary and `-n` setting. It ran `php` from the
+  `PATH` with the default php.ini, so `php -n benchmarks/run-all.php` still measured with Xdebug when it was installed.
+  It also prints the CPU and whether Xdebug is loaded, and fails when a benchmark fails.
+- MAGENTO_WIDGET_SUPPORT.md describes the 1.4.0 behaviour (Magento `{{...}}` directives pass through unchanged,
+  `type=` for widgets); the lexer patch that no longer matched the code is removed.
+
 ## [1.4.0] - 2026-10-25
 
 ### Added
@@ -62,7 +89,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `and`/`&&` evaluated only the first comparison; `or`/`||` and `in` conditions were silently false.
 - A function call or a literal used alone as a condition (`@if(@length(items))`) was always false.
-- `@if (x)`, `@for (x)`, `@match (x)` (whitespace before the parenthesis) left a stray `)` in the output.
+- Whitespace before the parenthesis: `@if (x)`, `@unless (x)`, `@for (x)` and `@case (x)` left a stray `)` in the
+  output, `@match (x)` was a ParseException ("Expected @case or @default inside @match"). All of them now work like
+  the form without the space.
 - An operator character inside a string on the left of a comparison (`"a>b" == x`) split the condition there.
 - The line break after an `@end` that follows content on its line was swallowed, merging CSV rows
   (`{sku},@if(qty > 0)in@else out@end` produced `A,inB, out`).
@@ -112,7 +141,8 @@ content. `\` line continuations are removed first, exactly as in 1.2/1.3.
   `tests/Fixtures/v1.4.0/examples`): 02 one user per line instead of one merged line; 04, 08, 09 leaked
   indentation removed; 07 product rows no longer merged and leaked indentation removed; 10 the case text no
   longer inherits the indentation of the `@match` line; 11 now stops at its first example with a
-  ParseException for `i < length(product.images) - 1` (1.3.0 printed invalid JSON and stopped at the fifth).
+  ParseException for `i < length(product.images) - 1` (1.3.0 printed invalid JSON for the first three and stopped at
+  the fourth with a ParseException for `"@context"`).
 
 ## [1.3.0] - 2026-05-03
 
@@ -202,6 +232,7 @@ content. `\` line continuations are removed first, exactly as in 1.2/1.3.
   - JSON API responses
 - Complete VitePress documentation site
 
+[Unreleased]: https://github.com/qoliber/tsuku/compare/v1.4.0...HEAD
 [1.4.0]: https://github.com/qoliber/tsuku/releases/tag/v1.4.0
 [1.3.0]: https://github.com/qoliber/tsuku/releases/tag/v1.3.0
 [1.2.0]: https://github.com/qoliber/tsuku/releases/tag/1.2.0

@@ -89,7 +89,7 @@ $template2 = '<?xml version="1.0" encoding="UTF-8"?>
       <g:link>@xml(product.url)</g:link>
       <g:image_link>@xml(product.image)</g:image_link>
       <g:price>{product.price} USD</g:price>
-      <g:availability>@match(product.stock) @case(0) out of stock @default in stock @end</g:availability>
+      <g:availability>@?{product.stock > 0 "in_stock" : "out_of_stock"}</g:availability>
       <g:condition>new</g:condition>
       <g:brand>@xml(product.brand)</g:brand>
       <g:gtin>@xml(product.gtin)</g:gtin>

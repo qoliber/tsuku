@@ -41,7 +41,7 @@
       <g:link>https://example.com/products/premium-widget</g:link>
       <g:image_link>https://example.com/images/widget.jpg</g:image_link>
       <g:price>29.99 USD</g:price>
-      <g:availability> in stock </g:availability>
+      <g:availability>in_stock</g:availability>
       <g:condition>new</g:condition>
       <g:brand>WidgetCo</g:brand>
       <g:gtin>1234567890123</g:gtin>
@@ -53,7 +53,7 @@
       <g:link>https://example.com/products/pro-gadget</g:link>
       <g:image_link>https://example.com/images/gadget.jpg</g:image_link>
       <g:price>599 USD</g:price>
-      <g:availability> out of stock </g:availability>
+      <g:availability>out_of_stock</g:availability>
       <g:condition>new</g:condition>
       <g:brand>GadgetPro</g:brand>
       <g:gtin>9876543210987</g:gtin>

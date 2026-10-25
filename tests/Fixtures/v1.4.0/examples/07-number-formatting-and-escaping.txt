@@ -1,0 +1,65 @@
+=== Number Formatting & Escaping Functions ===
+
+1. Basic Number Formatting:
+Price: $1,234.57
+
+2. European Number Formatting:
+Preis: 1.234.567,89 €
+
+3. CSV Export with Escaping:
+SKU,Name,Description,Price
+WID-001,Basic Widget,A simple widget,$29.99
+GAD-002,"Premium Gadget, Deluxe","A ""premium"" gadget with features",$1299.50
+TOY-003,Super Toy,"Multi-line
+description here",$49.95
+
+4. HTML Generation with XSS Protection:
+<div class="comment">
+  <h3>John &lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt; Doe</h3>
+  <p>This is a &lt;strong&gt;great&lt;/strong&gt; product &amp; I love it!</p>
+</div>
+
+5. URL Encoding for Query Parameters:
+https://example.com/search?q=premium%20widgets&category=Electronics%20%26%20Gadgets
+https://example.com/search?q=test%20%26%20verify&category=Tools%2FEquipment
+
+6. XML Generation with Escaping:
+<?xml version="1.0"?>
+<products>
+  <product id="1">
+    <name>Widget &amp; Gadget Bundle</name>
+    <description>Includes &lt;premium&gt; features &amp; support</description>
+    <price>199.99</price>
+  </product>
+</products>
+7. Generic Escape Function:
+HTML: Hello, &lt;World&gt; &amp; &quot;More&quot;
+XML: Hello, &lt;World&gt; &amp; &quot;More&quot;
+URL: Hello%2C%20%3CWorld%3E%20%26%20%22More%22
+CSV: "Hello, <World> & ""More"""
+
+8. E-commerce Invoice:
+INVOICE #12345
+
+Item                          Qty    Price      Total
+Premium Widget                   2      $1,299.99    $2,599.98
+Basic Gadget                   5      $49.95    $249.75
+                                     --------
+                          Subtotal:  $2,849.73
+                               Tax:  $227.98
+                                     ========
+                             TOTAL:  $3,077.71
+
+=== Summary ===
+Number formatting functions:
+- @number(value, decimals, decPoint, thousandsSep)
+- @round(value, precision)
+- @ceil(value), @floor(value), @abs(value)
+
+Escaping functions:
+- @html(text) - HTML escaping (XSS protection)
+- @xml(text) - XML escaping
+- @json(text) - JSON escaping
+- @url(text) - URL encoding
+- @csv(text) - CSV escaping with quotes
+- @escape(text, type) - Generic escape function

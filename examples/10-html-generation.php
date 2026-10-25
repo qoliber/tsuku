@@ -153,11 +153,15 @@ $template2 = '<div class="dashboard">
             <td>$@number(order.total, 2)</td>
             <td>
               <span class="status status-@html(order.status)">
-                @match(order.status)
-@case("completed") ✓ Completed
-@case("pending") ⏳ Pending
-@case("cancelled") ✗ Cancelled
-@default Unknown
+@match(order.status)
+@case("completed")
+                ✓ Completed
+@case("pending")
+                ⏳ Pending
+@case("cancelled")
+                ✗ Cancelled
+@default
+                Unknown
 @end
               </span>
             </td>
@@ -382,7 +386,7 @@ $template4 = '<form class="checkout-form" method="post" action="/checkout">
 @for(form.cart_items as item)
       <tr>
         <td>@html(item.name) × {item.quantity}</td>
-        <td class="text-right">$@number(item.price * item.quantity, 2)</td>
+        <td class="text-right">$@number(item.line_total, 2)</td>
       </tr>
 @end
       <tr class="subtotal">
@@ -466,6 +470,11 @@ $data4 = [
         'total' => 141.96
     ]
 ];
+
+// Templates have no arithmetic: compute line totals in PHP before rendering
+foreach ($data4['form']['cart_items'] as $i => $item) {
+    $data4['form']['cart_items'][$i]['line_total'] = $item['price'] * $item['quantity'];
+}
 
 echo $tsuku->process($template4, $data4);
 echo "\n\n";

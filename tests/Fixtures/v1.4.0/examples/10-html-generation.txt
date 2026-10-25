@@ -112,7 +112,7 @@
             <td>$299.99</td>
             <td>
               <span class="status status-completed">
- ✓ Completed
+                ✓ Completed
               </span>
             </td>
           </tr>
@@ -122,7 +122,7 @@
             <td>$149.50</td>
             <td>
               <span class="status status-pending">
- ⏳ Pending
+                ⏳ Pending
               </span>
             </td>
           </tr>
@@ -285,11 +285,11 @@
     <table class="order-summary">
       <tr>
         <td>Premium Widget × 2</td>
-        <td class="text-right">$0.00</td>
+        <td class="text-right">$59.98</td>
       </tr>
       <tr>
         <td>Gadget Pro × 1</td>
-        <td class="text-right">$0.00</td>
+        <td class="text-right">$59.99</td>
       </tr>
       <tr class="subtotal">
         <td>Subtotal</td>

@@ -6,39 +6,42 @@ Performance benchmarks for Tsuku templating library.
 
 Run all benchmarks:
 ```bash
-php benchmarks/run-all.php
+php -n benchmarks/run-all.php
 ```
+
+`-n` starts PHP without php.ini, so without Xdebug and OPcache. `run-all.php` starts every benchmark with the same
+PHP binary and the same `-n` setting, and prints the PHP version, CPU and whether Xdebug is loaded. With Xdebug
+loaded (`xdebug.mode=develop`) the benchmarks below ran about 5x slower.
 
 Run individual benchmarks:
 ```bash
-php benchmarks/simple.php      # Simple template with loops
-php benchmarks/complex.php     # Complex nested structures
-php benchmarks/variables.php   # 1000 variables
-php benchmarks/csv-export.php  # Real-world CSV export
+php -n benchmarks/simple.php      # Simple template with loops
+php -n benchmarks/complex.php     # Complex nested structures
+php -n benchmarks/variables.php   # 1000 variables
+php -n benchmarks/csv-export.php  # Real-world CSV export
 ```
 
 ## Benchmark Results
 
-Typical results on modern hardware (PHP 8.1+):
+Tsuku 1.4.0, PHP 8.3 with `php -n`, Intel Core Ultra 7 265K, Linux; median of 9 runs of
+`php -n benchmarks/run-all.php`. Your hardware will differ.
 
-| Benchmark | Scenario | Performance |
-|-----------|----------|-------------|
-| **Simple** | CSV export with 100 products | ~0.2ms per render |
-| **Complex** | Nested loops + conditions + match | ~3-5ms per render |
-| **Variables** | 1000 simple variables | ~2ms per render |
-| **CSV Export** | 1,000 products with escaping | ~10-15ms per export |
+| Benchmark | Scenario | Per render | Throughput |
+|-----------|----------|------------|------------|
+| **Simple** | CSV export with 100 products | 0.16 ms | ~6,400 renders/sec |
+| **Complex** | 10 categories × 20 products: nested loops, conditions, `@match`, functions | 0.56 ms | ~1,800 renders/sec |
+| **Variables** | 1,000 simple variables | 1.3 ms | ~760 renders/sec |
+| **CSV Export** | 1,000 products with `@csv`, `@number`, `@match` | 2.9 ms | ~350 exports/sec (~350,000 products/sec) |
 
-**Throughput:**
-- Simple templates: **5,000+ renders/sec**
-- Complex templates: **200-300 renders/sec**
-- CSV exports: **60-100 exports/sec** (60,000+ products/sec)
+PHP 8.1 and PHP 8.5 on the same machine were within 10% of these numbers.
 
 ## Performance Characteristics
 
-- **Lexer/Parser**: Single-pass, regex-based (efficient)
-- **Memory**: Low (~60KB per render)
-- **No compilation cache**: Each render parses fresh (intentional for flexibility)
-- **Bottlenecks**: None for typical workloads
+- **Lexer/Parser**: one pass over the template; conditions are parsed once per template into an expression tree
+- **No compilation cache**: every `process()` call parses the template again (intentional for simplicity), once per
+  call, not once per row
+- **Memory**: `process()` holds the whole output; [`processToStream()`](https://tsukuru.dev/guide/streaming) keeps it
+  bounded by the largest single row
 
 ## When Performance Matters
 
@@ -64,11 +67,8 @@ For maximum performance:
    }
    ```
 
-2. **Use appropriate strictness mode**
-   ```php
-   // SILENT is fastest (no warning collection)
-   $tsuku = new Tsuku(StrictnessMode::SILENT);
-   ```
+2. **Render many rows in one call**: one `process()` call over 10,000 rows parses the template once;
+   10,000 calls parse it 10,000 times
 
 3. **Minimize template complexity**
    - Fewer nested loops = faster rendering
@@ -92,4 +92,5 @@ To add a new benchmark:
 - Benchmarks use `microtime(true)` for precision
 - Results vary by hardware, PHP version, and load
 - Warm-up iterations not included (negligible impact)
-- Memory usage measured with `memory_get_usage()`
+- More on performance and when to choose a compiled engine instead:
+  [tsukuru.dev/guide/performance](https://tsukuru.dev/guide/performance)

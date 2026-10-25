@@ -22,7 +22,7 @@ echo str_repeat('-', 60) . "\n";
 $template1 = '{
   "status": "success",
   "data": {
-    "products": [@for(products as product, index)
+    "products": [@for(products as product, index)@if(index > 0),@end
       {
         "id": @json(product.id),
         "sku": @json(product.sku),
@@ -33,26 +33,21 @@ $template1 = '{
         "currency": "USD",
         "stock": {product.stock},
         "in_stock": @?{product.stock > 0 "true" : "false"},
-        "images": [
-          @for(product.images as img, i)
-          @json(img)@if(i < length(product.images) - 1),@end
-          @end
+        "images": [@for(product.images as img, i)@if(i > 0),@end
+          @json(img)@end
         ],
-        "categories": [
-          @for(product.categories as cat, i)
-          @json(cat)@if(i < length(product.categories) - 1),@end
-          @end
+        "categories": [@for(product.categories as cat, i)@if(i > 0),@end
+          @json(cat)@end
         ],
         "url": @json(product.url)
-      }@if(index < length(products) - 1),@end
-@end
+      }@end
     ],
     "total": {meta.total},
     "page": {meta.page},
     "per_page": {meta.per_page}
   },
   "meta": {
-    "timestamp": @date("Y-m-d\TH:i:s\Z"),
+    "timestamp": @json(@date("c")),
     "version": "1.0.0"
   }
 }';
@@ -110,7 +105,7 @@ $template2 = '{
     "field": @?{error.field @json(error.field) : "null"}
   },
   "meta": {
-    "timestamp": @date("Y-m-d\TH:i:s\Z"),
+    "timestamp": @json(@date("c")),
     "request_id": @json(meta.request_id)
   }
 }';
@@ -156,7 +151,7 @@ $template3 = '{
       "reviews": {user.stats.reviews},
       "wishlist": {user.stats.wishlist}
     },
-    "addresses": [@for(user.addresses as addr, i)
+    "addresses": [@for(user.addresses as addr, i)@if(i > 0),@end
       {
         "id": @json(addr.id),
         "label": @json(addr.label),
@@ -166,8 +161,7 @@ $template3 = '{
         "state": @json(addr.state),
         "zip": @json(addr.zip),
         "country": @json(addr.country)
-      }@if(i < length(user.addresses) - 1),@end
-@end
+      }@end
     ],
     "preferences": {
       "newsletter": @?{user.preferences.newsletter "true" : "false"},
@@ -237,45 +231,43 @@ echo "4. JSON-LD Structured Data (Product)\n";
 echo str_repeat('-', 60) . "\n";
 
 $template4 = '{
-  "@context": "https://schema.org",
-  "@type": "Product",
+  "@@context": "https://schema.org",
+  "@@type": "Product",
   "name": @json(product.name),
   "description": @json(product.description),
-  "image": [@for(product.images as img, i)
-    @json(img)@if(i < length(product.images) - 1),@end
-@end
+  "image": [@for(product.images as img, i)@if(i > 0),@end
+    @json(img)@end
   ],
   "brand": {
-    "@type": "Brand",
+    "@@type": "Brand",
     "name": @json(product.brand)
   },
   "offers": {
-    "@type": "Offer",
+    "@@type": "Offer",
     "price": @json(product.price),
     "priceCurrency": "USD",
     "availability": @?{product.stock > 0 @json("https://schema.org/InStock") : @json("https://schema.org/OutOfStock")},
     "url": @json(product.url)
   },
   "aggregateRating": {
-    "@type": "AggregateRating",
+    "@@type": "AggregateRating",
     "ratingValue": @json(product.rating.value),
     "reviewCount": {product.rating.count}
   }@if(product.reviews),
-  "review": [@for(product.reviews as review, i)
+  "review": [@for(product.reviews as review, i)@if(i > 0),@end
     {
-      "@type": "Review",
+      "@@type": "Review",
       "author": {
-        "@type": "Person",
+        "@@type": "Person",
         "name": @json(review.author)
       },
       "datePublished": "@date("Y-m-d", review.date)",
       "reviewBody": @json(review.body),
       "reviewRating": {
-        "@type": "Rating",
+        "@@type": "Rating",
         "ratingValue": {review.rating}
       }
-    }@if(i < length(product.reviews) - 1),@end
-@end
+    }@end
   ]@end
 }';
 
@@ -321,11 +313,11 @@ echo str_repeat('-', 60) . "\n";
 
 $template5 = '{
   "data": {
-    "user": @?{user {
+    "user":@if(user) {
       "id": @json(user.id),
       "name": @json(user.name),
       "email": @json(user.email),
-      "posts": [@for(user.posts as post, i)
+      "posts": [@for(user.posts as post, i)@if(i > 0),@end
         {
           "id": @json(post.id),
           "title": @json(post.title),
@@ -335,31 +327,27 @@ $template5 = '{
             "id": @json(user.id),
             "name": @json(user.name)
           },
-          "comments": [@for(post.comments as comment, ci)
+          "comments": [@for(post.comments as comment, ci)@if(ci > 0),@end
             {
               "id": @json(comment.id),
               "body": @json(comment.body),
               "author": {
                 "name": @json(comment.author)
               }
-            }@if(ci < length(post.comments) - 1),@end
-@end
+            }@end
           ]
-        }@if(i < length(user.posts) - 1),@end
-@end
+        }@end
       ]
-    } : "null"}
+    }@else null@end
   },
-  "errors": @?{errors [@for(errors as error, i)
+  "errors":@if(errors) [@for(errors as error, i)@if(i > 0),@end
     {
       "message": @json(error.message),
-      "path": [@for(error.path as p, pi)
-        @json(p)@if(pi < length(error.path) - 1),@end
-@end
+      "path": [@for(error.path as p, pi)@if(pi > 0),@end
+        @json(p)@end
       ]
-    }@if(i < length(errors) - 1),@end
-@end
-  ] : "null"}
+    }@end
+  ]@else null@end
 }';
 
 $data5 = [
@@ -400,7 +388,7 @@ echo str_repeat('-', 60) . "\n";
 
 $template6 = '{
   "event": @json(webhook.event),
-  "timestamp": @date("Y-m-d\TH:i:s\Z", webhook.timestamp),
+  "timestamp": @json(@date("c", webhook.timestamp)),
   "data": {
     "order": {
       "id": @json(webhook.data.order.id),
@@ -412,14 +400,13 @@ $template6 = '{
         "name": @json(webhook.data.order.customer.name),
         "email": @json(webhook.data.order.customer.email)
       },
-      "items": [@for(webhook.data.order.items as item, i)
+      "items": [@for(webhook.data.order.items as item, i)@if(i > 0),@end
         {
           "product_id": @json(item.product_id),
           "name": @json(item.name),
           "quantity": {item.quantity},
           "price": {item.price}
-        }@if(i < length(webhook.data.order.items) - 1),@end
-@end
+        }@end
       ],
       "shipping_address": {
         "street": @json(webhook.data.order.shipping.street),

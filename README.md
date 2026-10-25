@@ -19,33 +19,34 @@ Perfect for e-commerce exports, API responses, configuration files, and data tra
 - 🎭 **Widget support**: Build Magento-style widgets with custom functions
 - 🛠️ **Clean architecture**: Lexer → Parser → Compiler pipeline (AST-based)
 - 🚀 **PHP 8.1+**: Modern PHP with zero dependencies
-- ✅ **Production-ready**: 848 tests (including characterization tests against 1.3.0), 95% mutation score
+- ✅ **Production-ready**: 848 tests (including characterization tests against 1.3.0), 99.4% line coverage, 98.7% mutation score
 - 📦 **Predictable whitespace**: directive-only lines vanish, content lines are kept exactly as written
 - ⚡ **Fast**: Single-pass compilation, efficient AST walking
 - 🔒 **Type-safe**: Full PHP 8.1+ type hints and strict types
 
 ## Performance
 
-Tsuku is **fast** - designed for high-volume data transformations:
+Tsuku 1.4.0, PHP 8.3 run with `php -n` (no Xdebug, no OPcache), Intel Core Ultra 7 265K, Linux;
+median of 9 runs of `php -n benchmarks/run-all.php`:
 
-| Benchmark | Performance | Throughput |
-|-----------|-------------|------------|
-| **Simple templates** | 0.2ms per render | **~5,000 renders/sec** |
-| **Complex templates** | 1.0ms per render | **~1,000 renders/sec** |
-| **1,000 variables** | 1.8ms per render | **~550 renders/sec** |
-| **CSV export (1,000 products)** | 3.9ms per export | **~250 exports/sec** |
+| Benchmark | What it renders | Per render | Throughput |
+|-----------|-----------------|------------|------------|
+| **Simple** | CSV with 100 products | 0.16 ms | ~6,400 renders/sec |
+| **Complex** | 10 categories × 20 products: nested loops, conditions, `@match`, functions | 0.56 ms | ~1,800 renders/sec |
+| **Variables** | 1,000 `{variables}` | 1.3 ms | ~760 renders/sec |
+| **CSV export** | 1,000 products with `@csv`, `@number`, `@match` | 2.9 ms | ~350 exports/sec (**~350,000 products/sec**) |
 
-**Real-world capacity:**
-- **250,000+ products/second** for CSV exports
-- Sub-millisecond rendering for typical templates
-- Low memory footprint (~60KB per render)
+Tsuku parses the template on every `process()` call and keeps no compiled cache: it is built for one render
+with a large output (exports, feeds, documents), not for thousands of small renders per second. For feeds too
+large to hold in memory use [`processToStream()`](#streaming-large-datasets).
 
-Run benchmarks yourself:
+Run the benchmarks yourself (your hardware will differ):
 ```bash
-php benchmarks/run-all.php
+php -n benchmarks/run-all.php
 ```
 
-See [benchmarks/](benchmarks/) for detailed performance tests.
+Use `-n`, or at least switch Xdebug off: with Xdebug loaded (`xdebug.mode=develop`) the same benchmarks ran about
+5x slower on the machine above. See [benchmarks/](benchmarks/) and [tsukuru.dev/guide/performance](https://tsukuru.dev/guide/performance).
 
 ## Requirements
 
@@ -186,7 +187,7 @@ fclose($handle);
 ```php
 $template = 'SKU,Name,Price,Stock
 @for(products as product)
-@csv(product.sku),@csv(product.name),$@number(product.price, 2),{product.stock}
+@csv(product.sku),@csv(product.name),@number(product.price, 2, ".", ""),{product.stock}
 @end';
 
 $data = [
@@ -199,9 +200,12 @@ $data = [
 file_put_contents('export.csv', $tsuku->process($template, $data));
 // Output:
 // SKU,Name,Price,Stock
-// WID-001,Widget,$29.99,100
-// GAD-002,"Gadget, Premium",$1,299.50,50
+// WID-001,Widget,29.99,100
+// GAD-002,"Gadget, Premium",1299.50,50
 ```
+
+`@csv()` quotes only the values that need it. `@number(value, 2)` alone would print `1,299.50` - the thousands
+separator would split the price into two columns - so CSV templates pass the separators: `@number(value, 2, ".", "")`.
 
 ### XML Product Catalog
 
@@ -210,7 +214,7 @@ $template = '<?xml version="1.0"?>
 <catalog>
 @for(products as product)
   <product id="{product.id}">
-    <name>{product.name}</name>
+    <name>@xml(product.name)</name>
     <price>{product.price}</price>
 @if(product.stock > 0)
     <availability>in-stock</availability>
@@ -219,6 +223,40 @@ $template = '<?xml version="1.0"?>
 @end
 </catalog>';
 ```
+
+Tsuku escapes nothing on its own: use `@xml()`, `@html()`, `@json()` or `@csv()` for values that may contain
+special characters.
+
+### JSON with Commas Between Items
+
+JSON allows no comma after the last element, so put the separator *in front of* every element but the first.
+In a list the loop key is `0` only for the first element (pass `array_values($items)` if the keys are different):
+
+```php
+$template = '{
+  "products": [@for(products as product, index)@if(index > 0),@end
+    {"sku": @json(product.sku), "price": @number(product.price, 2, ".", ""), "in_stock": @?{product.stock > 0 "true" : "false"}}@end
+  ]
+}';
+
+$data = [
+    'products' => [
+        ['sku' => 'WID-001', 'price' => 29.99, 'stock' => 100],
+        ['sku' => 'GAD-002', 'price' => 1299.5, 'stock' => 0],
+    ],
+];
+
+echo $tsuku->process($template, $data);
+// Output:
+// {
+//   "products": [
+//     {"sku": "WID-001", "price": 29.99, "in_stock": true},
+//     {"sku": "GAD-002", "price": 1299.50, "in_stock": false}
+//   ]
+// }
+```
+
+`@json()` prints a complete, quoted JSON string. More patterns: [tsukuru.dev/examples/json-apis](https://tsukuru.dev/examples/json-apis).
 
 ### YAML Configuration
 
@@ -284,14 +322,15 @@ Use `{variableName}` or `{object.property}` for dot notation:
 {category.products.0.name}
 ```
 
-**Smart Object/Array Access:**
+**Smart Object/Array Access:** each segment of a path is read from an array by key; from an object Tsuku
+uses the first of these that exists: `getX()`, `isX()`, `x()`, then the public property `x`.
 ```php
-// All of these work:
 {product.price}     // Array: $product['price'] OR Object: $product->getPrice()
 {user.name}         // Array: $user['name'] OR Object: $user->getName()
 {product.available} // Array: $product['available'] OR Object: $product->isAvailable()
-{item.total}        // Array: $item['total'] OR Object: $item->total() OR $item->getTotal()
+{item.total}        // Array: $item['total'] OR Object: $item->getTotal(), $item->isTotal(), $item->total(), then $item->total
 ```
+Details: [tsukuru.dev/guide/variables](https://tsukuru.dev/guide/variables).
 
 ### For Loops
 
@@ -403,6 +442,7 @@ something wrong.
 @trim(text)                  // Remove whitespace
 @substr(text, start, length) // Extract substring
 @replace(text, search, replace) // Replace text
+@concat(first, " ", last)    // Ann Lee
 ```
 
 **Number functions:**
@@ -414,7 +454,11 @@ something wrong.
 @ceil(value)                                      // Round up
 @floor(value)                                     // Round down
 @abs(value)                                       // Absolute value
+@number_format(...)                               // Same as @number
 ```
+
+Templates have no arithmetic: `@number(qty * price, 2)` prints `0.00` and a condition such as `index < length(items) - 1`
+throws a `ParseException`. Compute derived values (line totals, margins) in PHP before rendering, or register a function.
 
 **Array functions:**
 ```
@@ -428,7 +472,7 @@ something wrong.
 ```
 @html(text)            // HTML-safe: &lt;script&gt;
 @xml(text)             // XML-safe escaping
-@json(text)            // JSON-safe escaping
+@json(text)            // Complete JSON string, quotes included: "Widget \u0022Pro\u0022"
 @url(text)             // URL encoding: Hello%20World
 @csv(text)             // CSV escaping with quotes
 @escape(text, "html")  // Generic escape (html/xml/json/url/csv)
@@ -437,6 +481,7 @@ something wrong.
 **Date/Utility functions:**
 ```
 @date("Y-m-d", timestamp)     // Format date
+@strtotime("2025-01-15")      // Unix timestamp
 @default(value, "fallback")   // Use fallback if empty
 ```
 
@@ -502,7 +547,8 @@ Templates can be indented freely; the rules decide which whitespace around direc
 @end
 ```
 renders one row per product (`WID-001,Available`). `\` line continuations still join lines first;
-`\r\n` line breaks are handled like `\n`. Full rules: see CHANGELOG.md (1.4.0).
+`\r\n` line breaks are handled like `\n`. Full rules with examples:
+[tsukuru.dev/guide/whitespace-control](https://tsukuru.dev/guide/whitespace-control).
 
 ### Escaping
 

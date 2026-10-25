@@ -84,7 +84,7 @@ $template = '
            INVOICE #{order.id}
 ===========================================
 
-Status: @upper(order.status) @ternary(order.paid, "[PAID]", "[UNPAID]")
+Status: @upper(order.status) @?{order.paid "[PAID]" : "[UNPAID]"}
 
 Items:
 @for(order.items as item)

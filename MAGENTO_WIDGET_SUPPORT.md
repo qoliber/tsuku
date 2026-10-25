@@ -1,319 +1,119 @@
-# Adding Magento-Style Widget Syntax Support
+# Magento Directives and Widgets in Tsuku Templates
 
-This document explains how to add Magento's `{{widget}}` syntax to Tsuku.
+Tsuku does not interpret Magento's `{{...}}` directives, and it does not change them either: `{{widget ...}}`,
+`{{block ...}}`, `{{media ...}}`, `{{store ...}}`, `{{trans ...}}`, `{{var ...}}`, `{{config ...}}` and
+`{{depend ...}}...{{/depend}}` pass through **unchanged**. That leaves three ways to handle them. The full guide is
+at [tsukuru.dev/guide/widget-support](https://tsukuru.dev/guide/widget-support).
 
-## Magento Syntax vs Tsuku Syntax
+## 1. Leave Them for Magento
 
-**Magento:**
-```
-{{widget class="Magento\Cms\Block\Widget\Block" template="widget/static_block/default.phtml" block_id="footer_links"}}
-```
-
-**Current Tsuku:**
-```
-@product_widget("Electronics", 10)
-```
-
-## Why Isn't It Supported By Default?
-
-Tsuku uses a different syntax philosophy:
-- **Magento**: `{{directive key="value" key2="value2"}}`
-- **Tsuku**: `@function(arg1, arg2, arg3)`
-
-Magento's syntax requires:
-1. Different delimiter (`{{}}` vs `@`)
-2. Attribute-style parsing (`key="value"` pairs)
-3. Space-separated parameters
-
-## How to Add Magento Widget Support
-
-You have **3 options**:
-
-### Option 1: Use Tsuku's Function Syntax (Recommended)
-
-Create widget functions that mimic Magento widgets:
+Render your data with Tsuku and let Magento's template filter expand the directives later (CMS blocks, CMS pages,
+e-mails):
 
 ```php
+use Qoliber\Tsuku\Tsuku;
+
 $tsuku = new Tsuku();
 
-// Register a widget function
-$tsuku->registerFunction('cms_block', function(string $blockId, ?string $template = null): string {
-    // Your logic to load and render CMS block
-    $block = loadCmsBlock($blockId);
-    return renderTemplate($template ?? 'default.phtml', ['block' => $block]);
+$template = '<div class="footer">
+    <p>@html(store.name)</p>
+    {{widget type="Magento\Cms\Block\Widget\Block" template="widget/static_block/default.phtml" block_id="footer_links"}}
+    <img src="{{media url="wysiwyg/logo.png"}}" alt="">
+    <p>{{trans "Thank you, %name!" name=$customer.name}}</p>
+</div>';
+
+echo $tsuku->process($template, ['store' => ['name' => 'Fish & Chips Ltd']]);
+```
+
+Output:
+
+```html
+<div class="footer">
+    <p>Fish &amp; Chips Ltd</p>
+    {{widget type="Magento\Cms\Block\Widget\Block" template="widget/static_block/default.phtml" block_id="footer_links"}}
+    <img src="{{media url="wysiwyg/logo.png"}}" alt="">
+    <p>{{trans "Thank you, %name!" name=$customer.name}}</p>
+</div>
+```
+
+Magento names the widget class with `type="..."` in `{{widget}}` (`class="..."` belongs to the `{{block}}`
+directive). Two things to watch:
+
+- `{{name}}` with nothing but a plain variable path inside is `{` + the value of `name` + `}` (`{{customer_name}}`
+  renders `{Ann}`). Magento directives always have a keyword followed by attributes, so they are not affected.
+- `@` is Tsuku syntax everywhere, also inside `{{...}}`: an e-mail address in `{{trans "Write to support@example.com"}}`
+  or a CSS `@media` rule throws a `ParseException`. Write `@@` for a literal `@` (`support@@example.com`).
+
+## 2. Render Widgets with Tsuku Functions
+
+Register a function per widget and call it in the template:
+
+```php
+$tsuku->registerFunction('cms_block', function (string $blockId): string {
+    // Stand-in for your CMS storage (database, cache, Magento block repository, ...)
+    $blocks = ['footer_links' => '<a href="/about">About</a> | <a href="/contact">Contact</a>'];
+
+    return $blocks[$blockId] ?? "<!-- CMS Block '{$blockId}' not found -->";
 });
 
-// Usage in template:
-// @cms_block("footer_links", "widget/static_block/default.phtml")
+echo $tsuku->process('<footer>
+@cms_block("footer_links")
+@cms_block("missing_block")
+</footer>', []);
 ```
 
-**Pros:**
-- Works immediately
-- Type-safe function arguments
-- No lexer/parser changes needed
+Output:
 
-**Cons:**
-- Different syntax than Magento
-- Requires template migration
-
-### Option 2: Pre-process Templates
-
-Convert Magento syntax to Tsuku syntax before processing:
-
-```php
-function convertMagentoToTsuku(string $template): string {
-    // Convert {{widget class="..." param="value"}} to @widget("class", "param=value")
-    return preg_replace_callback(
-        '/\{\{widget\s+([^}]+)\}\}/',
-        function($matches) {
-            $attributes = parseWidgetAttributes($matches[1]);
-            $class = $attributes['class'] ?? '';
-            unset($attributes['class']);
-
-            $args = array_map(
-                fn($k, $v) => "\"{$k}={$v}\"",
-                array_keys($attributes),
-                $attributes
-            );
-
-            return '@magento_widget("' . $class . '", ' . implode(', ', $args) . ')';
-        },
-        $template
-    );
-}
-
-function parseWidgetAttributes(string $attrString): array {
-    $attrs = [];
-    preg_match_all('/(\w+)="([^"]*)"/', $attrString, $matches, PREG_SET_ORDER);
-
-    foreach ($matches as $match) {
-        $attrs[$match[1]] = $match[2];
-    }
-
-    return $attrs;
-}
-
-// Usage:
-$magentoTemplate = '{{widget class="Magento\Cms\Block\Widget\Block" block_id="footer"}}';
-$tsukuTemplate = convertMagentoToTsuku($magentoTemplate);
-$result = $tsuku->process($tsukuTemplate, $data);
+```html
+<footer>
+<a href="/about">About</a> | <a href="/contact">Contact</a>
+<!-- CMS Block 'missing_block' not found -->
+</footer>
 ```
 
-**Pros:**
-- Keep existing Magento templates
-- No changes to Tsuku core
+The return value of a function is printed as it is - Tsuku neither escapes it nor parses it again - so escape user
+data inside the function. [examples/06-widget-syntax.php](examples/06-widget-syntax.php) has product list, banner
+and newsletter widgets.
 
-**Cons:**
-- Extra preprocessing step
-- Slight performance overhead
+## 3. Expand `{{widget}}` Yourself After Rendering
 
-### Option 3: Extend Tsuku Lexer (Advanced)
-
-Add `{{widget}}` support directly to Tsuku:
-
-**Step 1: Modify the Lexer**
-
-Edit `src/Lexer/Lexer.php`:
+Outside Magento, replace the directives in Tsuku's output. Because they come out of `process()` unchanged, no
+change to Tsuku (lexer, parser) is needed:
 
 ```php
-// Add new token type
-enum TokenType: string
+function expandWidgets(string $html, callable $render): string
 {
-    // ... existing types
-    case MAGENTO_WIDGET = 'MAGENTO_WIDGET';
+    return preg_replace_callback('/\{\{widget\s+(.*?)\}\}/s', function (array $match) use ($render): string {
+        preg_match_all('/(\w+)="([^"]*)"/', $match[1], $pairs, PREG_SET_ORDER);
+        $attributes = array_column($pairs, 2, 1);
+
+        return $render($attributes['type'] ?? '', $attributes);
+    }, $html);
 }
 
-// In Lexer::nextToken(), add before other @ checks:
-if (preg_match('/^\{\{widget\s+([^}]+)\}\}/', $remaining, $matches)) {
-    $this->advance(strlen($matches[0]));
-    return new Token(TokenType::MAGENTO_WIDGET, $matches[1], $startLine, $startColumn);
-}
-```
+// $template from option 1
+$html = $tsuku->process($template, ['store' => ['name' => 'Fish & Chips Ltd']]);
 
-**Step 2: Modify the Parser**
-
-Edit `src/Ast/Parser.php`:
-
-```php
-private function parseNode(): ?Node
-{
-    $token = $this->peek();
-
-    return match ($token->type) {
-        // ... existing cases
-        TokenType::MAGENTO_WIDGET => $this->parseMagentoWidget(),
-        // ...
-    };
-}
-
-private function parseMagentoWidget(): FunctionNode
-{
-    $token = $this->advance();
-    $attributes = $this->parseMagentoAttributes($token->value);
-
-    // Convert to function arguments
-    $args = [];
-    foreach ($attributes as $key => $value) {
-        $args[] = "\"{$key}={$value}\"";
-    }
-
-    return new FunctionNode('magento_widget', $args);
-}
-
-private function parseMagentoAttributes(string $attrString): array
-{
-    $attrs = [];
-    preg_match_all('/(\w+)="([^"]*)"/', $attrString, $matches, PREG_SET_ORDER);
-
-    foreach ($matches as $match) {
-        $attrs[$match[1]] = $match[2];
-    }
-
-    return $attrs;
-}
-```
-
-**Step 3: Register Widget Handler**
-
-```php
-$tsuku->registerFunction('magento_widget', function(string ...$attributes): string {
-    $params = [];
-    $class = '';
-
-    foreach ($attributes as $attr) {
-        [$key, $value] = explode('=', $attr, 2);
-
-        if ($key === 'class') {
-            $class = $value;
-        } else {
-            $params[$key] = $value;
-        }
-    }
-
-    // Render widget based on class
-    return renderMagentoWidget($class, $params);
-});
-```
-
-**Pros:**
-- Native Magento syntax support
-- No preprocessing needed
-- Can use both syntaxes
-
-**Cons:**
-- Requires modifying Tsuku core
-- More complex to maintain
-- May complicate future updates
-
-## Recommended Approach
-
-**For new projects:** Use Option 1 (Tsuku's native function syntax)
-
-**For Magento migrations:** Use Option 2 (preprocessing)
-
-**For full Magento compatibility:** Use Option 3 (extend lexer)
-
-## Example: Complete Magento Widget Implementation
-
-```php
-// Register Magento-compatible widget handler
-$tsuku->registerFunction('magento_widget', function(string ...$attributes): string {
-    // Parse attributes
-    $params = [];
-    $class = '';
-
-    foreach ($attributes as $attr) {
-        if (str_contains($attr, '=')) {
-            [$key, $value] = explode('=', $attr, 2);
-            if ($key === 'class') {
-                $class = $value;
-            } else {
-                $params[$key] = $value;
-            }
-        }
-    }
-
-    // Handle different Magento widget types
-    return match(true) {
-        str_contains($class, 'Cms\\Block\\Widget\\Block') =>
-            renderCmsBlock($params['block_id'] ?? '', $params['template'] ?? 'default.phtml'),
-
-        str_contains($class, 'Catalog\\Block\\Product\\Widget\\NewWidget') =>
-            renderNewProducts($params['products_count'] ?? 5),
-
-        str_contains($class, 'Newsletter\\Block\\Subscribe') =>
-            renderNewsletterSubscribe($params['template'] ?? 'default.phtml'),
-
-        default => "<!-- Unknown widget class: {$class} -->"
+echo expandWidgets($html, function (string $type, array $attributes): string {
+    return match ($type) {
+        'Magento\Cms\Block\Widget\Block' => '<div class="cms-block">'
+            . htmlspecialchars($attributes['block_id'] ?? '') . '</div>',
+        default => '<!-- unknown widget ' . htmlspecialchars($type) . ' -->',
     };
 });
-
-function renderCmsBlock(string $blockId, string $template): string {
-    // Load CMS block from database/cache
-    $block = getCmsBlockById($blockId);
-
-    return <<<HTML
-    <div class="cms-block" data-block-id="{$blockId}">
-        {$block['content']}
-    </div>
-    HTML;
-}
-
-function renderNewProducts(int $count): string {
-    // Load new products
-    $products = getNewProducts($count);
-
-    $html = '<div class="new-products">';
-    foreach ($products as $product) {
-        $html .= <<<HTML
-        <div class="product">
-            <h3>{$product['name']}</h3>
-            <p>\${$product['price']}</p>
-        </div>
-        HTML;
-    }
-    $html .= '</div>';
-
-    return $html;
-}
 ```
 
-## Testing Widget Support
+Output:
 
-```php
-// If using preprocessing (Option 2):
-$magentoTemplate = <<<'HTML'
+```html
 <div class="footer">
-    {{widget class="Magento\Cms\Block\Widget\Block" block_id="footer_links"}}
-    {{widget class="Magento\Newsletter\Block\Subscribe" template="subscribe.phtml"}}
+    <p>Fish &amp; Chips Ltd</p>
+    <div class="cms-block">footer_links</div>
+    <img src="{{media url="wysiwyg/logo.png"}}" alt="">
+    <p>{{trans "Thank you, %name!" name=$customer.name}}</p>
 </div>
-HTML;
-
-$tsukuTemplate = convertMagentoToTsuku($magentoTemplate);
-$result = $tsuku->process($tsukuTemplate, []);
-
-// If using native function (Option 1):
-$tsukuTemplate = <<<'HTML'
-<div class="footer">
-    @cms_block("footer_links")
-    @newsletter_subscribe("subscribe.phtml")
-</div>
-HTML;
-
-$result = $tsuku->process($tsukuTemplate, []);
 ```
 
-## Conclusion
-
-While Tsuku doesn't support Magento's exact `{{widget}}` syntax by default, you can:
-
-1. **Use native Tsuku syntax** - Simpler, cleaner, type-safe
-2. **Preprocess Magento templates** - Keep existing templates, convert on-the-fly
-3. **Extend the lexer** - Add native `{{widget}}` support
-
-Choose based on your needs:
-- **New project?** → Option 1
-- **Migrating from Magento?** → Option 2
-- **Need perfect Magento compatibility?** → Option 3
-
-The custom function system is powerful enough to handle any widget rendering logic you need!
+Earlier versions of this document showed how to add a `{{widget}}` token to the lexer and parser. That code does
+not match the 1.4.0 lexer, and none of it is needed: the directives already pass through, so option 3 gives the
+same result without maintaining a modified Tsuku.

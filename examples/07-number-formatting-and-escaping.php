@@ -23,10 +23,11 @@ $result2 = $tsuku->process($template2, ['price' => 1234567.89]);
 echo "$result2\n\n";
 
 // Example 3: CSV Export with Proper Escaping
+// No thousands separator in CSV: "1,299.50" would split the price into two columns
 echo "3. CSV Export with Escaping:\n";
 $template3 = 'SKU,Name,Description,Price
 @for(products as product)
-@csv(product.sku),@csv(product.name),@csv(product.description),$@number(product.price, 2)
+@csv(product.sku),@csv(product.name),@csv(product.description),$@number(product.price, 2, ".", "")
 @end';
 
 $data3 = [
@@ -132,7 +133,7 @@ $template8 = 'INVOICE #@number(invoice.id, 0, "", "")
 
 Item                          Qty    Price      Total
 @for(invoice.items as item)
-{item.name}                   {item.qty}      $@number(item.price, 2)    $@number(item.qty * item.price, 2)
+{item.name}                   {item.qty}      $@number(item.price, 2)    $@number(item.total, 2)
 @end
                                      --------
                           Subtotal:  $@number(invoice.subtotal, 2)
@@ -153,6 +154,11 @@ $data8 = [
         'total' => 3077.71,
     ],
 ];
+
+// Templates have no arithmetic: compute line totals in PHP before rendering
+foreach ($data8['invoice']['items'] as $i => $item) {
+    $data8['invoice']['items'][$i]['total'] = $item['qty'] * $item['price'];
+}
 
 $result8 = $tsuku->process($template8, $data8);
 echo "$result8\n";

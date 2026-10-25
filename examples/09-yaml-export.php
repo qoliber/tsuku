@@ -105,7 +105,9 @@ $template2 = 'version: \'{compose.version}\'
 services:
 @for(compose.services as service)
   {service.name}:
+@if(service.image)
     image: {service.image}
+@end
 @if(service.build)
     build:
       context: {service.build.context}

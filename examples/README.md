@@ -4,11 +4,14 @@ This directory contains practical examples demonstrating Tsuku's features.
 
 ## Running the Examples
 
+Every file runs on its own:
+
 ```bash
 php examples/01-basic.php
 php examples/02-object-access.php
 php examples/03-functions.php
 php examples/04-advanced.php
+# ... up to examples/11-json-generation.php
 ```
 
 ## Example Overview
@@ -56,6 +59,22 @@ Complex real-world scenarios:
 - Mixed data types (arrays, objects, primitives)
 - Complex business logic in templates
 
+### 05-custom-functions.php
+Registering your own functions with `registerFunction()`:
+- Single and multi-argument functions, optional arguments
+- Functions returning HTML or arrays (`@join(@pluck(users, "name"), ", ")`)
+- Variadic functions and closures over external configuration
+- Nesting custom and built-in functions
+
+### 06-widget-syntax.php
+Widgets and CMS blocks as custom functions (`@product_widget("Electronics", 10)`, `@cms_block("footer-info")`),
+and Magento `{{widget ...}}` / `{{media ...}}` / `{{trans ...}}` directives passing through unchanged
+(see [MAGENTO_WIDGET_SUPPORT.md](../MAGENTO_WIDGET_SUPPORT.md)).
+
+### 07-number-formatting-and-escaping.php
+`@number()` with US and European separators, and the escaping functions `@html()`, `@xml()`, `@url()`,
+`@csv()` and `@escape()`.
+
 ## Key Features Demonstrated
 
 ### Variable Interpolation
@@ -98,9 +117,14 @@ Complex real-world scenarios:
 @if(stock > 0)
 @if(role == "admin")
 @if(price >= 100)
+@if(stock > 0 and (featured or price < 10))
+@if("sale" in tags)
 ```
 
-## Production-Ready Format Examples ⭐ NEW
+Templates have no arithmetic (`@number(qty * price, 2)` prints `0.00`, `index < length(items) - 1` is a
+ParseException): the examples compute line totals and margins in PHP before rendering.
+
+## Format Examples
 
 ### 07-csv-export.php
 Comprehensive CSV export examples:
@@ -108,7 +132,7 @@ Comprehensive CSV export examples:
 - Multi-category product export
 - Customer order export
 - Inventory reports with low stock alerts
-- Sales reports with calculations
+- Sales reports with revenue and margins calculated in PHP
 
 ### 08-xml-export.php
 Real-world XML generation:
@@ -132,7 +156,6 @@ HTML generation from complex objects:
 - User profile dashboards
 - Blog article lists with metadata
 - E-commerce checkout forms
-- HTML email templates
 
 ### 11-json-generation.php
 JSON API response generation:
@@ -142,6 +165,9 @@ JSON API response generation:
 - JSON-LD structured data (SEO)
 - GraphQL-like response structures
 - Webhook payloads
+
+Commas between array items use a leading separator, `@for(items as item, index)@if(index > 0),@end`,
+and every response is valid JSON.
 
 ## Tips
 

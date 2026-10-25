@@ -106,10 +106,10 @@ $result4 = $tsuku->process($template4, [
 ]);
 echo "$result4\n\n";
 
-// Example 5: Alternative syntax using custom directive (more Magento-like)
-echo "5. Custom Directive for Widget (Magento-style):\n\n";
+// Example 5: CMS blocks rendered by a function
+echo "5. CMS Block Function:\n\n";
 
-// Register a custom directive that handles widget syntax more elegantly
+// Register a function that renders a CMS block by its ID
 $tsuku->registerFunction('cms_block', function(string $id): string {
     // Simulate loading CMS block by ID
     $blocks = [
@@ -141,6 +141,19 @@ $template5 = '
 
 $result5 = $tsuku->process($template5, []);
 echo "$result5\n";
+
+// Example 6: Magento directives are not Tsuku syntax and pass through unchanged,
+// so Magento can expand them later (CMS blocks, CMS pages, e-mails)
+echo "6. Magento Directives Pass Through:\n";
+$template6 = '<div class="footer">
+    <p>@html(store.name)</p>
+    {{widget type="Magento\Cms\Block\Widget\Block" template="widget/static_block/default.phtml" block_id="footer_links"}}
+    <img src="{{media url="wysiwyg/logo.png"}}" alt="">
+    <p>{{trans "Thank you, %name!" name=$customer.name}}</p>
+</div>';
+
+$result6 = $tsuku->process($template6, ['store' => ['name' => 'Fish & Chips Ltd']]);
+echo "$result6\n";
 
 echo "\n=== Summary ===\n";
 echo "Custom functions allow you to:\n";

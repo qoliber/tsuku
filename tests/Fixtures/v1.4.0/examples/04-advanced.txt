@@ -6,7 +6,7 @@
            INVOICE #12345
 ===========================================
 
-Status: PAID 
+Status: PAID [PAID]
 
 Items:
   2x Widget - $49.99 = $99.98

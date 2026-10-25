@@ -23,7 +23,7 @@ $template1 = 'SKU,Name,Price,Stock
 @for(products as product)
 @csv(product.sku),\
 @csv(product.name),\
-$@number(product.price, 2),\
+$@number(product.price, 2, ".", ""),\
 {product.stock}
 @end';
 
@@ -49,9 +49,16 @@ $template2 = 'Category,SKU,Name,Description,Price,Stock,Status
 @csv(product.sku),\
 @csv(product.name),\
 @csv(product.description),\
-$@number(product.price, 2),\
+$@number(product.price, 2, ".", ""),\
 {product.stock},\
-@match(product.status) @case("active") Active @case("discontinued") Discontinued @default Unknown @end
+@match(product.status)
+    @case("active")
+        Active
+    @case("discontinued")
+        Discontinued
+    @default
+        Unknown
+@end
   @end
 @end';
 
@@ -110,8 +117,8 @@ $template3 = 'Order ID,Date,Customer Name,Customer Email,Product,Quantity,Unit P
 @csv(order.customer.email),\
 @csv(item.product),\
 {item.quantity},\
-$@number(item.price, 2),\
-$@number(item.quantity * item.price, 2),\
+$@number(item.price, 2, ".", ""),\
+$@number(item.total, 2, ".", ""),\
 {order.status}
   @end
 @end';
@@ -145,6 +152,13 @@ $data3 = [
         ],
     ]
 ];
+
+// Templates have no arithmetic: compute line totals in PHP before rendering
+foreach ($data3['orders'] as $o => $order) {
+    foreach ($order['items'] as $i => $item) {
+        $data3['orders'][$o]['items'][$i]['total'] = $item['quantity'] * $item['price'];
+    }
+}
 
 echo $tsuku->process($template3, $data3);
 echo "\n";
@@ -185,9 +199,9 @@ $template5 = 'Product,Units Sold,Unit Price,Revenue,Profit Margin
 @for(sales as item)
 @csv(item.product),\
 {item.units_sold},\
-$@number(item.unit_price, 2),\
-$@number(item.units_sold * item.unit_price, 2),\
-@number((item.unit_price - item.cost) / item.unit_price * 100, 1)%
+$@number(item.unit_price, 2, ".", ""),\
+$@number(item.revenue, 2, ".", ""),\
+@number(item.margin, 1)%
 @end';
 
 $data5 = [
@@ -197,6 +211,12 @@ $data5 = [
         ['product' => 'Doohickey Basic', 'units_sold' => 500, 'unit_price' => 9.99, 'cost' => 5.00],
     ]
 ];
+
+// Revenue and profit margin are calculated in PHP: templates have no arithmetic
+foreach ($data5['sales'] as $i => $item) {
+    $data5['sales'][$i]['revenue'] = $item['units_sold'] * $item['unit_price'];
+    $data5['sales'][$i]['margin'] = ($item['unit_price'] - $item['cost']) / $item['unit_price'] * 100;
+}
 
 echo $tsuku->process($template5, $data5);
 echo "\n";
