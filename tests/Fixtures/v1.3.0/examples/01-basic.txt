@@ -1,0 +1,26 @@
+=== Basic Tsuku Examples ===
+
+1. Variable Interpolation:
+Hello, World! Welcome to Tsuku.
+
+2. For Loop:
+- Apple
+- Banana
+- Orange
+
+3. For Loop with Key:
+User #0: Alice
+User #1: Bob
+User #2: Charlie
+
+4. Conditional (@if):
+With stock: In Stock
+No stock: Out of Stock
+
+5. Unless Directive:
+No error: Success!
+With error: Error: Something went wrong
+
+6. Nested Data Access:
+User: John Doe, Location: New York, USA
+

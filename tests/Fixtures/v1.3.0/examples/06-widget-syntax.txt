@@ -1,0 +1,71 @@
+=== Magento-Style Widget Syntax ===
+
+1. Product List Widget:
+<div class="widget-product-list">
+    <h3>Products in category: Electronics</h3>
+    <p>Showing 10 products</p>
+    <!-- Product list would be dynamically loaded here -->
+</div>
+
+2. Banner Widget:
+<div class="widget-banner">
+    <a href="/sale">
+        <img src="/images/summer.jpg" alt="Summer Sale">
+    </a>
+</div>
+
+3. Newsletter Widget:
+<div class="widget-newsletter">
+    <h4>Stay Updated</h4>
+    <form method="post" action="/newsletter/subscribe">
+        <input type="email" name="email" placeholder="Your email" required>
+        <button type="submit">Join Now</button>
+    </form>
+</div>
+
+4. Conditional Widget Rendering:
+
+<div class="sidebar">
+<div class="widget-newsletter">
+    <h4>Subscribe Now</h4>
+    <form method="post" action="/newsletter/subscribe">
+        <input type="email" name="email" placeholder="Your email" required>
+        <button type="submit">Subscribe</button>
+    </form>
+</div>
+
+<div class="widget-product-list">
+    <h3>Products in category: Electronics</h3>
+    <p>Showing 5 products</p>
+    <!-- Product list would be dynamically loaded here -->
+</div>
+</div>
+
+
+5. Custom Directive for Widget (Magento-style):
+
+
+<header>
+    <div class="promo">Free Shipping on Orders Over $50!</div>
+</header>
+
+<main>
+    <!-- Main content here -->
+</main>
+
+<aside>
+    <div class="ad"><img src="/ads/special-offer.jpg"></div>
+</aside>
+
+<footer>
+    <div class="footer-info">© 2024 My Store. All rights reserved.</div>
+</footer>
+
+
+=== Summary ===
+Custom functions allow you to:
+1. Create widget-like syntax similar to Magento
+2. Parse complex attribute strings
+3. Render dynamic components
+4. Integrate with your application logic
+5. Create reusable template components

@@ -1,0 +1,117 @@
+=== JSON GENERATION EXAMPLES ===
+
+1. REST API - Product List Response
+------------------------------------------------------------
+{
+  "status": "success",
+  "data": {
+    "products": [      {
+        "id": "WID-001",
+        "sku": "WID-001-PRO",
+        "name": "Premium Widget \u0022Pro Edition\u0022",
+        "description": "A \u003Cpremium\u003E widget with advanced features \u0026 professional-grade quality",
+        "price": 129.99,
+        "sale_price": 99.99,
+        "currency": "USD",
+        "stock": 50,
+        "in_stock": true,
+        "images": [
+                    "https:\/\/example.com\/images\/widget-1.jpg"                    "https:\/\/example.com\/images\/widget-2.jpg"                  ],
+        "categories": [
+                    "Electronics"                    "Gadgets"                    "Premium"                  ],
+        "url": "https:\/\/example.com\/products\/premium-widget"
+      }      {
+        "id": "GAD-002",
+        "sku": "GAD-002-ULT",
+        "name": "Ultimate Gadget \u003CProfessional\u003E",
+        "description": "The ultimate gadget for professionals",
+        "price": 599,
+        "sale_price": null,
+        "currency": "USD",
+        "stock": 0,
+        "in_stock": false,
+        "images": [
+                    "https:\/\/example.com\/images\/gadget.jpg"                  ],
+        "categories": [
+                    "Electronics"                    "Professional"                  ],
+        "url": "https:\/\/example.com\/products\/ultimate-gadget"
+      }    ],
+    "total": 2,
+    "page": 1,
+    "per_page": 10
+  },
+  "meta": {
+    "timestamp": <DATETIME>,
+    "version": "1.0.0"
+  }
+}
+
+2. REST API - Error Response
+------------------------------------------------------------
+{
+  "status": "error",
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed for the provided input",
+    "details": "The email field must be a valid email address",
+    "field": "email"
+  },
+  "meta": {
+    "timestamp": <DATETIME>,
+    "request_id": "req_abc123xyz"
+  }
+}
+
+3. Complex Nested User Profile
+------------------------------------------------------------
+{
+  "user": {
+    "id": "usr_12345",
+    "username": "johndoe",
+    "email": "john.doe@example.com",
+    "name": "John Doe \u003CAdmin\u003E",
+    "bio": "Software developer \u0026 tech enthusiast. Love building \u003Camazing\u003E things!",
+    "avatar": "https:\/\/example.com\/avatars\/john.jpg",
+    "profile": {
+      "phone": "+1 (555) 123-4567",
+      "website": "https:\/\/johndoe.com",
+      "location": {
+        "city": "San Francisco",
+        "country": "USA",
+        "timezone": "America\/Los_Angeles"
+      }
+    },
+    "stats": {
+      "orders": 42,
+      "reviews": 128,
+      "wishlist": 5
+    },
+    "addresses": [      {
+        "id": "addr_1",
+        "label": "Home",
+        "is_default": true,
+        "street": "123 Main St, Apt #4",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94102",
+        "country": "USA"
+      }      {
+        "id": "addr_2",
+        "label": "Office",
+        "is_default": false,
+        "street": "456 Business Ave, Suite 200",
+        "city": "New York",
+        "state": "NY",
+        "zip": "10001",
+        "country": "USA"
+      }    ],
+    "preferences": {
+      "newsletter": true,
+      "notifications": false,
+      "theme": "dark"
+    }
+  }
+}
+
+4. JSON-LD Structured Data (Product)
+------------------------------------------------------------

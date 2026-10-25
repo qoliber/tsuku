@@ -1,0 +1,205 @@
+=== YAML EXPORT EXAMPLES ===
+
+1. Application Configuration (YAML)
+------------------------------------------------------------
+# Application Configuration
+# Generated on <DATETIME>
+
+app:
+  name: MyApp
+  version: 2.0.0
+  environment: production
+  debug: false
+
+database:
+  host: db.example.com
+  port: 3306
+  name: myapp_prod
+  username: dbuser
+  password: secret123
+
+cache:
+  driver: redis
+  ttl: 3600
+  redis:
+    host: redis.example.com
+    port: 6379
+
+services:
+  payment:
+    enabled: true
+    endpoint: https://api.payment.com
+    credentials:
+      api_key: pk_live_123456
+  email:
+    enabled: true
+    endpoint: https://api.email.com
+    credentials:
+      api_key: key_789
+
+
+2. Docker Compose (docker-compose.yml)
+------------------------------------------------------------
+version: '3.8'
+
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+    depends_on:
+      - app
+  app:
+    image: 
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: production
+      DB_HOST: database
+      DB_PORT: 3306
+    volumes:
+      - ./app:/var/www/html
+    depends_on:
+      - database
+  database:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: myapp
+    volumes:
+      - db_data:/var/lib/mysql
+
+networks:
+  app_network:
+    driver: bridge
+
+
+3. Kubernetes Deployment (deployment.yaml)
+------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-deployment
+  namespace: production
+  labels:
+    app: myapp
+    version: v1.0.0
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:1.0.0
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: APP_ENV
+          value: "production"
+        - name: DB_HOST
+          value: "mysql.production.svc.cluster.local"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+
+4. GitHub Actions CI/CD Workflow
+------------------------------------------------------------
+name: CI/CD Pipeline
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.1
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --prefer-dist
+      - name: Run tests
+        run: |
+          composer test
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production..."
+
+
+5. OpenAPI Specification (Simplified)
+------------------------------------------------------------
+openapi: 3.0.0
+info:
+  title: My API
+  description: RESTful API for MyApp
+  version: 1.0.0
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production
+  - url: https://staging-api.example.com/v1
+    description: Staging
+
+paths:
+  /products:
+    get:
+      summary: Get all products
+      description: Returns a list of all products
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+  /products/{id}:
+    get:
+      summary: Get product by ID
+      description: Returns a single product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+        '404':
+          description: Product not found
+
+
+=== All YAML examples completed! ===

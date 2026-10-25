@@ -42,7 +42,8 @@ class CsvTemplateTest extends TestCase
 
     public function testGenerateCsvWithConditionals(): void
     {
-        $template = "name,price,status\n@for(products as product)\n{product.name},{product.price},@if(product.stock > 0)\nIn Stock\n@end\n@unless(product.stock > 0)\nOut of Stock\n@end\n@end";
+        $template = "name,price,status\n@for(products as product)\n{product.name},{product.price},"
+            . "@if(product.stock > 0)\nIn Stock\n@end\n@unless(product.stock > 0)\nOut of Stock\n@end\n@end";
 
         $data = [
             'products' => [

@@ -91,5 +91,5 @@
     "minMsi": 70,        // Minimum Mutation Score Indicator (70%+)
     "minCoveredMsi": 80,  // Minimum Covered Code MSI (80%+)
 
-    "initialTestsPhpOptions": "-d pcov.enabled=1 -d pcov.directory=/home/jakub/qoliber-open-source/tsuku/src"
+    "initialTestsPhpOptions": "-d pcov.enabled=1 -d pcov.directory=src"
 }

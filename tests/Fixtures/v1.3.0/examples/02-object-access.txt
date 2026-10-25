@@ -1,0 +1,23 @@
+=== Smart Object/Array Access ===
+
+1. Object with Getter Methods:
+Product: Super Widget, Price: $99.99, Stock: 42
+
+2. Array Access (same syntax):
+Item: Gadget, Quantity: 10
+
+3. Mixed Array and Object:
+Order #12345: Super Widget - $99.99
+
+4. Object Method in Conditional:
+Super Widget is IN STOCK (42 units)
+
+5. Objects in Loop:
+- Alice <alice@example.com> [ACTIVE]- Bob <bob@example.com> [INACTIVE]- Charlie <charlie@example.com> [ACTIVE]
+
+=== Access Strategy Priority ===
+1. Array access: $data['key']
+2. Getter methods: $object->getKey()
+3. Boolean getters: $object->isKey()
+4. Direct methods: $object->key()
+5. Public properties: $object->key

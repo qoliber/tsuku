@@ -16,7 +16,7 @@ class EscaperTest extends TestCase
         $this->tsuku = new Tsuku();
     }
 
-    public function test_html_escapes_special_characters(): void
+    public function testHtmlEscapesSpecialCharacters(): void
     {
         $template = '@html(text)';
         $result = $this->tsuku->process($template, [
@@ -26,7 +26,7 @@ class EscaperTest extends TestCase
         $this->assertSame('&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;', $result);
     }
 
-    public function test_html_escapes_quotes(): void
+    public function testHtmlEscapesQuotes(): void
     {
         $template = '@html(text)';
         $result = $this->tsuku->process($template, [
@@ -36,7 +36,7 @@ class EscaperTest extends TestCase
         $this->assertSame('He said &quot;Hello&quot; &amp; &apos;Goodbye&apos;', $result);
     }
 
-    public function test_xml_escapes_special_characters(): void
+    public function testXmlEscapesSpecialCharacters(): void
     {
         $template = '@xml(text)';
         $result = $this->tsuku->process($template, [
@@ -46,7 +46,7 @@ class EscaperTest extends TestCase
         $this->assertSame('&lt;node attr=&quot;value&quot;&gt;Content &amp; more&lt;/node&gt;', $result);
     }
 
-    public function test_json_escapes_string(): void
+    public function testJsonEscapesString(): void
     {
         $template = '@json(text)';
         $result = $this->tsuku->process($template, [
@@ -58,7 +58,7 @@ class EscaperTest extends TestCase
         $this->assertStringContainsString('\u0026', $result); // & is escaped
     }
 
-    public function test_url_escapes_special_characters(): void
+    public function testUrlEscapesSpecialCharacters(): void
     {
         $template = '@url(text)';
         $result = $this->tsuku->process($template, [
@@ -68,7 +68,7 @@ class EscaperTest extends TestCase
         $this->assertSame('Hello%20World%20%26%20More', $result);
     }
 
-    public function test_url_escapes_query_parameters(): void
+    public function testUrlEscapesQueryParameters(): void
     {
         $template = 'https://example.com?query=@url(search)';
         $result = $this->tsuku->process($template, [
@@ -78,7 +78,7 @@ class EscaperTest extends TestCase
         $this->assertSame('https://example.com?query=foo%20bar%20%26%20baz%3D123', $result);
     }
 
-    public function test_csv_escapes_comma(): void
+    public function testCsvEscapesComma(): void
     {
         $template = '@csv(text)';
         $result = $this->tsuku->process($template, [
@@ -88,7 +88,7 @@ class EscaperTest extends TestCase
         $this->assertSame('"Hello, World"', $result);
     }
 
-    public function test_csv_escapes_quotes(): void
+    public function testCsvEscapesQuotes(): void
     {
         $template = '@csv(text)';
         $result = $this->tsuku->process($template, [
@@ -98,7 +98,7 @@ class EscaperTest extends TestCase
         $this->assertSame('"He said ""Hello"""', $result);
     }
 
-    public function test_csv_escapes_newlines(): void
+    public function testCsvEscapesNewlines(): void
     {
         $template = '@csv(text)';
         $result = $this->tsuku->process($template, [
@@ -108,7 +108,7 @@ class EscaperTest extends TestCase
         $this->assertSame("\"Line 1\nLine 2\"", $result);
     }
 
-    public function test_csv_no_escape_simple_text(): void
+    public function testCsvNoEscapeSimpleText(): void
     {
         $template = '@csv(text)';
         $result = $this->tsuku->process($template, [
@@ -118,7 +118,7 @@ class EscaperTest extends TestCase
         $this->assertSame('SimpleText', $result);
     }
 
-    public function test_escape_defaults_to_html(): void
+    public function testEscapeDefaultsToHtml(): void
     {
         $template = '@escape(text)';
         $result = $this->tsuku->process($template, [
@@ -128,7 +128,7 @@ class EscaperTest extends TestCase
         $this->assertSame('&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;', $result);
     }
 
-    public function test_escape_with_html_type(): void
+    public function testEscapeWithHtmlType(): void
     {
         $template = '@escape(text, "html")';
         $result = $this->tsuku->process($template, [
@@ -138,7 +138,7 @@ class EscaperTest extends TestCase
         $this->assertSame('&lt;div&gt;Content&lt;/div&gt;', $result);
     }
 
-    public function test_escape_with_xml_type(): void
+    public function testEscapeWithXmlType(): void
     {
         $template = '@escape(text, "xml")';
         $result = $this->tsuku->process($template, [
@@ -148,7 +148,7 @@ class EscaperTest extends TestCase
         $this->assertSame('&lt;node&gt;Value &amp; More&lt;/node&gt;', $result);
     }
 
-    public function test_escape_with_url_type(): void
+    public function testEscapeWithUrlType(): void
     {
         $template = '@escape(text, "url")';
         $result = $this->tsuku->process($template, [
@@ -158,7 +158,7 @@ class EscaperTest extends TestCase
         $this->assertSame('Hello%20World', $result);
     }
 
-    public function test_escape_with_csv_type(): void
+    public function testEscapeWithCsvType(): void
     {
         $template = '@escape(text, "csv")';
         $result = $this->tsuku->process($template, [
@@ -168,17 +168,20 @@ class EscaperTest extends TestCase
         $this->assertSame('"Hello, World"', $result);
     }
 
-    public function test_html_escaping_in_template(): void
+    public function testHtmlEscapingInTemplate(): void
     {
         $template = '<div class="user-content">@html(user.comment)</div>';
         $result = $this->tsuku->process($template, [
             'user' => ['comment' => '<script>alert("XSS")</script>'],
         ]);
 
-        $this->assertSame('<div class="user-content">&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;</div>', $result);
+        $this->assertSame(
+            '<div class="user-content">&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;</div>',
+            $result
+        );
     }
 
-    public function test_escaping_in_loop(): void
+    public function testEscapingInLoop(): void
     {
         $template = '@for(items as item)
 @html(item)
@@ -195,7 +198,7 @@ class EscaperTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    public function test_csv_export_with_escaping(): void
+    public function testCsvExportWithEscaping(): void
     {
         $template = 'Name,Description
 @for(products as product)
@@ -217,7 +220,7 @@ Widget,A simple widget
         $this->assertSame($expected, $result);
     }
 
-    public function test_url_encoding_in_links(): void
+    public function testUrlEncodingInLinks(): void
     {
         $template = '@for(items as item)
 https://example.com/search?q=@url(item.query)

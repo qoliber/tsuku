@@ -15,8 +15,19 @@ namespace Qoliber\Tsuku;
 
 use Qoliber\Tsuku\Exception\DirectiveNotFoundException;
 
+/**
+ * Custom block directives: @name(arguments) ... @end
+ *
+ * A handler is called as handler(string $body, mixed ...$arguments) where $body is
+ * the rendered content between the directive and its @end, and the arguments are
+ * resolved like function arguments (quoted strings, numbers as written, variables,
+ * nested function calls). The return value (cast to string) replaces the block.
+ */
 class DirectiveRegistry
 {
+    /** Names that are built-in directives and cannot be registered */
+    public const RESERVED = ['for', 'if', 'unless', 'elseif', 'else', 'match', 'case', 'default', 'end'];
+
     /** @var array<string, callable> */
     private array $directives = [];
 
@@ -28,12 +39,23 @@ class DirectiveRegistry
     /**
      * Register a directive
      *
-     * @param string $name
-     * @param callable $handler
+     * @param string $name Directive name without "@" ([a-zA-Z_][a-zA-Z0-9_]*, not a built-in)
+     * @param callable $handler callable(string $body, mixed ...$arguments): string|int|float|bool|null|\Stringable
      * @return void
+     * @throws \InvalidArgumentException For names that can never match or that shadow a built-in
      */
     public function register(string $name, callable $handler): void
     {
+        if (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*\z/', $name) !== 1) {
+            throw new \InvalidArgumentException(
+                "Invalid directive name '{$name}': use letters, digits and underscores, not starting with a digit"
+            );
+        }
+
+        if (in_array($name, self::RESERVED, true)) {
+            throw new \InvalidArgumentException("'{$name}' is a built-in directive and cannot be registered");
+        }
+
         $this->directives[$name] = $handler;
     }
 
@@ -65,12 +87,22 @@ class DirectiveRegistry
     }
 
     /**
+     * Names of all registered directives
+     *
+     * @return array<int, string>
+     */
+    public function names(): array
+    {
+        return array_keys($this->directives);
+    }
+
+    /**
      * Register default directives
      *
      * @return void
      */
     private function registerDefaults(): void
     {
-        // Will be implemented with concrete directives
+        // No custom directives are registered by default
     }
 }

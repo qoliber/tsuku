@@ -6,18 +6,21 @@ Tsuku is a powerful template processing library built with a clean **Lexer → P
 
 Perfect for e-commerce exports, API responses, configuration files, and data transformations.
 
+📖 **Documentation: [tsukuru.dev](https://tsukuru.dev)**
+
 ## Features
 
 - 🎯 **Any text format**: CSV, XML, JSON, YAML, TOML, HTML, Markdown, INI, XSD, or custom formats
-- 🔄 **Control flow**: Loops (`@for`), conditionals (`@if`, `@unless`, `@else`), pattern matching (`@match`)
+- 🔄 **Control flow**: Loops (`@for`), conditionals (`@if`, `@unless`, `@elseif`, `@else`), pattern matching (`@match`)
+- 🧮 **Real conditions**: `and`/`or`/`not`, `&&`/`||`/`!`, parentheses, `in` / `not in`
 - 🪺 **Deep nesting**: Unlimited levels of nested directives
 - 🎨 **Smart object/array access**: Automatic getter detection, method calls, property access
-- 🔧 **Custom functions**: Register your own `@function()` handlers
+- 🔧 **Custom functions and directives**: Register your own `@function()` handlers and `@block() ... @end` directives
 - 🎭 **Widget support**: Build Magento-style widgets with custom functions
 - 🛠️ **Clean architecture**: Lexer → Parser → Compiler pipeline (AST-based)
 - 🚀 **PHP 8.1+**: Modern PHP with zero dependencies
-- ✅ **Production-ready**: 196 tests, 423 assertions, 88% mutation score
-- 📦 **Preserves formatting**: Exact whitespace and newline control
+- ✅ **Production-ready**: 848 tests (including characterization tests against 1.3.0), 95% mutation score
+- 📦 **Predictable whitespace**: directive-only lines vanish, content lines are kept exactly as written
 - ⚡ **Fast**: Single-pass compilation, efficient AST walking
 - 🔒 **Type-safe**: Full PHP 8.1+ type hints and strict types
 
@@ -224,12 +227,14 @@ $template = 'services:
 @for(services as service)
   {service.name}:
     image: {service.image}
-    @if(service.ports)ports:
-@for(service.ports as port)
+    @if(service.ports)
+    ports:
+      @for(service.ports as port)
       - "{port}"
-@end
+      @end
     @end
 @end';
+// Directive-only lines produce no output, so they can be indented like the YAML around them
 ```
 
 ### HTML Product List with XSS Protection
@@ -349,7 +354,44 @@ With key/value (value first, then key):
 @end
 ```
 
-**Supported operators:** `>`, `<`, `>=`, `<=`, `==`, `!=`
+**Else-if:**
+```
+@if(product.qty > 10)
+  In stock
+@elseif(product.qty > 0)
+  Low stock
+@else
+  Sold out
+@end
+```
+
+**Conditions** (in `@if`, `@unless`, `@elseif` and `@?{...}`):
+
+| Operator | Meaning |
+|----------|---------|
+| `==` `!=` `>` `<` `>=` `<=` | PHP loose comparison (numeric strings compare as numbers) |
+| `in`, `not in` | list on the right: membership, comparing as strings (`"7231" in ids` matches `7231`); string on the right: case-sensitive substring; anything else: false |
+| `not`, `!` | negation |
+| `and`, `&&` | both (short-circuit) |
+| `or`, `\|\|` | either (short-circuit) |
+| `( ... )` | grouping |
+
+Precedence from lowest to highest: `or` < `and` < `not` < comparisons, so `not a == b` means `not (a == b)`.
+Operands are string and number literals, variable paths, function calls and parenthesised expressions;
+a condition may span several lines. `and`, `or`, `not` and `in` are keywords only as whole words, so
+`product.order`, `inventory` or `notes` are ordinary variables. `true`, `false` and `null` are *not*
+literals (they are looked up as variables, as in earlier versions): write `@if(flag)` / `@if(not flag)`.
+
+```
+@if(product.qty > 0 and ("sale" in product.tags or product.price < 10))
+@if("7231" in @split(product.groups, ","))   // exact id membership
+@if(@length(product.images))                  // a function result is tested for truthiness
+@?{product.qty > 0 and product.visible "in stock" : "out of stock"}
+```
+
+Malformed conditions (`=`, `x - 1`, `a < b < c`, a dangling `and`, an unknown function, ...) throw a
+`ParseException` (or `FunctionNotFoundException`) naming the line and column instead of rendering
+something wrong.
 
 ### Built-in Functions
 
@@ -398,6 +440,13 @@ With key/value (value first, then key):
 @default(value, "fallback")   // Use fallback if empty
 ```
 
+**Membership functions:**
+```
+@contains(haystack, needle)   // Same rules as "needle in haystack": list membership or substring
+@split(value, ",")            // "a,b" -> ["a", "b"]; "" -> []; the delimiter defaults to ","
+@join(@split(tags, ";"), " | ")
+```
+
 ### Custom Functions
 
 Register your own:
@@ -409,6 +458,58 @@ $tsuku->registerFunction('badge', function(string $text, string $color = 'blue')
 // Use in template:
 // @badge(status, "green")
 ```
+
+### Custom Directives
+
+Directives wrap a block of the template. The handler receives the rendered body first, then the
+arguments (resolved like function arguments), and returns the output that replaces the block:
+
+```php
+$tsuku->registerDirective('cdata', fn(string $body): string => '<![CDATA[' . $body . ']]>');
+$tsuku->registerDirective('wrap', fn(string $body, string $open, string $close): string => $open . $body . $close);
+
+// <title>@cdata
+//     {product.name}
+// @end</title>                     ->  <title><![CDATA[Fish & Chips]]></title>
+// @wrap("[", "]"){product.sku}@end  ->  [WID-001]
+```
+
+A directive can be written `@name(arguments) ... @end` or, without arguments, `@name ... @end`.
+Registered names take precedence over functions of the same name; built-in names (`if`, `for`, ...)
+cannot be registered. Errors thrown by a handler follow the strictness mode, like function errors.
+
+### Whitespace Control
+
+Templates can be indented freely; the rules decide which whitespace around directives is output:
+
+1. A line holding only directives (and spaces/tabs) produces no output at all - not its indentation,
+   not its line break.
+2. Indentation before `@else`, `@elseif`, `@case`, `@default` and `@end` at the start of a line is dropped.
+3. A directive other than `@end` at the end of a content line takes that line break with it.
+4. An `@end` that follows content on its line keeps the line break after it.
+5. In an *inline* block (content before the opening directive on its line), whitespace containing a line
+   break at the start of each branch is dropped - and at the end of each branch too when content follows
+   the block's `@end` on its line. Single-line branches (`@else out`) stay exactly as written.
+
+```
+@for(products as p)
+{p.sku},@match(p.status)
+    @case("active")
+        Available
+    @default
+        Unavailable
+@end
+@end
+```
+renders one row per product (`WID-001,Available`). `\` line continuations still join lines first;
+`\r\n` line breaks are handled like `\n`. Full rules: see CHANGELOG.md (1.4.0).
+
+### Escaping
+
+`@@` prints a literal `@` (`user@@example.com`, `@@media (max-width: 600px)`). Braces need no escaping:
+`{...}` is a variable only when it contains a plain path, so JSON, CSS and Magento directives such as
+`{{widget ...}}` or `{{media url="..."}}` pass through unchanged. (`{{name}}` is `{` + the value of
+`name` + `}`; to print a literal `{name}` use `@concat("{", "name}")`.)
 
 ### Deep Nesting
 
@@ -433,7 +534,7 @@ Tsuku uses a clean **three-stage compiler pipeline** inspired by traditional pro
 ### The Pipeline
 
 ```
-Template String → Lexer → Tokens → Parser → AST → Compiler → Output String
+Template String → Lexer (+ whitespace control) → Tokens → Parser → AST → Compiler → Output String
 ```
 
 #### 1. **Lexer (Lexical Analyzer)**
@@ -523,7 +624,7 @@ Output: "Hello John, welcome"
 
 ### Benefits of This Architecture
 
-✅ **Exact whitespace preservation** - Lexer captures everything
+✅ **Predictable whitespace** - layout is decided once, while lexing; rendering never re-scans text
 ✅ **Proper nesting validation** - Parser builds correct tree or throws error
 ✅ **Clean separation of concerns** - Each stage has one job
 ✅ **Easy to extend** - Add new node types without breaking existing code

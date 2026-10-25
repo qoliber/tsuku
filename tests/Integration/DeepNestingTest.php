@@ -47,11 +47,13 @@ Category: {category.name}
 
         $result = $this->tsuku->process($template, $data);
 
+        // Directive-only lines are layout since 1.4.0: content lines keep exactly
+        // their own indentation (1.3.0 added the indentation of the directive lines)
         $expected = 'Category: Electronics
-          Product: Laptop
-                    Variant: LAP-001 - $999.99
-                    Variant: LAP-002 - $1299.99
-            ';
+      Product: Laptop
+            Variant: LAP-001 - $999.99
+            Variant: LAP-002 - $1299.99
+';
 
         // Full text comparison
         $this->assertEquals($expected, $result);
@@ -89,13 +91,13 @@ User: {user.name}
         $result = $this->tsuku->process($template, $data);
 
         $expected = 'User: Alice
-          Status: Active
-                    Premium Member
-                User: Bob
-          Status: Active
-                User: Charlie
-              Status: Inactive
-    ';
+      Status: Active
+            Premium Member
+User: Bob
+      Status: Active
+User: Charlie
+      Status: Inactive
+';
 
         // Full text comparison
         $this->assertEquals($expected, $result);
@@ -139,11 +141,11 @@ User: {user.name}
         $result = $this->tsuku->process($template, $data);
 
         $expected = '    Order #12345
-            FREE SHIPPING
-                  - Widget: $50.00
-                            (Discount: 10%)
-                              - Gadget: $100.00
-                        ';
+        FREE SHIPPING
+          - Widget: $50.00
+                (Discount: 10%)
+          - Gadget: $100.00
+';
 
         // Full text comparison
         $this->assertEquals($expected, $result);

@@ -80,7 +80,8 @@ class FunctionIntegrationTest extends TestCase
         $template = 'Employee Report - Generated: @date("Y-m-d H:i:s")
 Name,Department,Salary,Status
 @for(employees as employee)
-@upper(employee.last),@upper(employee.dept),@number_format(employee.salary, 2, ".", ""),@default(employee.status, "Active")
+@upper(employee.last),@upper(employee.dept),\\
+@number_format(employee.salary, 2, ".", ""),@default(employee.status, "Active")
 @end
 Total Employees: @length(employees)';
 
@@ -126,6 +127,7 @@ Total Employees: @length(employees)';
 
         $result = $this->tsuku->process($template, $data);
 
+        // Since 1.4.0 an @end that follows content on its line keeps the line break after it
         $expected = '{
   "users": [    {
       "id": 1,
@@ -137,7 +139,8 @@ Total Employees: @length(employees)';
       "username": "jsmith",
       "display_name": "JANE SMITH",
       "tags": "user, manager"
-    }  ]
+    }
+  ]
 }';
 
         $this->assertSame($expected, $result);

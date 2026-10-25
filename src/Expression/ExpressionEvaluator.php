@@ -13,100 +13,98 @@ declare(strict_types=1);
 
 namespace Qoliber\Tsuku\Expression;
 
+use Qoliber\Tsuku\Exception\FunctionNotFoundException;
 use Qoliber\Tsuku\Function\FunctionRegistry;
 
 class ExpressionEvaluator
 {
+    /** @var array<string, \Qoliber\Tsuku\Expression\Expression> */
+    private array $parsed = [];
+
+    private ?ExpressionParser $parser = null;
+
     public function __construct(
         private readonly ?FunctionRegistry $functionRegistry = null,
     ) {
     }
 
     /**
-     * Evaluate expression with data context
+     * Evaluate a condition string with data context
      *
      * @param string $expression
      * @param array<mixed> $data
      * @return bool
+     * @throws \Qoliber\Tsuku\Exception\ParseException When the condition is malformed
+     * @throws \Qoliber\Tsuku\Exception\FunctionNotFoundException When it calls an unknown function
      */
     public function evaluate(string $expression, array $data): bool
     {
-        $expression = trim($expression);
-
-        // Simple variable check (truthy)
-        if (preg_match('/^[a-zA-Z_][a-zA-Z0-9_\.]*$/', $expression)) {
-            $value = $this->getNestedValue($data, $expression);
-            return !empty($value);
-        }
-
-        // Comparison operators
-        if (preg_match('/^(.+?)\s*(>=|<=|>|<|==|!=)\s*(.+)$/', $expression, $matches)) {
-            $left = $this->resolveValue(trim($matches[1]), $data);
-            $operator = $matches[2];
-            $right = $this->resolveValue(trim($matches[3]), $data);
-
-            return $this->compare($left, $operator, $right);
-        }
-
-        return false;
+        return $this->evaluateExpression($this->parse($expression), $data);
     }
 
     /**
-     * Resolve value from expression part
+     * Evaluate an already parsed condition
      *
-     * @param string $value
+     * @param \Qoliber\Tsuku\Expression\Expression $expression
      * @param array<mixed> $data
-     * @return mixed
+     * @return bool
      */
-    private function resolveValue(string $value, array $data): mixed
+    public function evaluateExpression(Expression $expression, array $data): bool
     {
-        // String literal
-        if (preg_match('/^["' . "'" . '](.*)["' . "'" . ']$/', $value, $matches)) {
-            return $matches[1];
-        }
-
-        // Number
-        if (is_numeric($value)) {
-            return str_contains($value, '.') ? (float) $value : (int) $value;
-        }
-
-        // Function call: @functionName(args)
-        if ($this->functionRegistry !== null && preg_match('/^@([a-zA-Z_][a-zA-Z0-9_]*)\(/', $value, $matches)) {
-            $functionName = $matches[1];
-            $argsStart = strlen($matches[0]) - 1;
-            $args = $this->extractBalancedParentheses($value, $argsStart);
-
-            if ($args !== null && $this->functionRegistry->has($functionName)) {
-                // Parse arguments
-                $arguments = [];
-                if (trim($args) !== '') {
-                    $arguments = $this->parseArguments($args);
-                }
-
-                // Resolve arguments recursively
-                $resolvedArgs = array_map(
-                    fn($arg) => $this->resolveValue(trim($arg), $data),
-                    $arguments
-                );
-
-                // Execute function
-                return $this->functionRegistry->execute($functionName, $resolvedArgs);
-            }
-        }
-
-        // Variable
-        return $this->getNestedValue($data, $value);
+        return self::isTruthy($expression->evaluate($this, $data));
     }
 
     /**
-     * Compare two values with operator
+     * Parse a condition string (cached per evaluator)
+     *
+     * @param string $expression
+     * @return \Qoliber\Tsuku\Expression\Expression
+     * @throws \Qoliber\Tsuku\Exception\ParseException
+     */
+    public function parse(string $expression): Expression
+    {
+        $this->parser ??= new ExpressionParser($this->functionRegistry);
+
+        return $this->parsed[$expression] ??= $this->parser->parseCondition($expression);
+    }
+
+    /**
+     * Call a registered function from inside a condition
+     *
+     * @param string $name
+     * @param array<int, mixed> $arguments
+     * @return mixed
+     * @throws \Qoliber\Tsuku\Exception\FunctionNotFoundException
+     */
+    public function callFunction(string $name, array $arguments): mixed
+    {
+        if ($this->functionRegistry === null || !$this->functionRegistry->has($name)) {
+            throw FunctionNotFoundException::named($name, "Unknown function '@{$name}' in condition");
+        }
+
+        return $this->functionRegistry->execute($name, $arguments);
+    }
+
+    /**
+     * Truthiness used by conditions: everything PHP's empty() does not reject
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public static function isTruthy(mixed $value): bool
+    {
+        return !empty($value);
+    }
+
+    /**
+     * Compare two values (loose PHP comparison as in 1.3.0, plus in / not in)
      *
      * @param mixed $left
      * @param string $operator
      * @param mixed $right
      * @return bool
      */
-    private function compare(mixed $left, string $operator, mixed $right): bool
+    public static function compare(mixed $left, string $operator, mixed $right): bool
     {
         return match ($operator) {
             '>' => $left > $right,
@@ -115,174 +113,9 @@ class ExpressionEvaluator
             '<=' => $left <= $right,
             '==' => $left == $right,
             '!=' => $left != $right,
-            default => false,
+            'in' => Membership::contains($right, $left),
+            'not in' => !Membership::contains($right, $left),
+            default => throw new \InvalidArgumentException("Unsupported operator '{$operator}'"),
         };
-    }
-
-    /**
-     * Extract content between balanced parentheses
-     *
-     * @param string $text
-     * @param int $startPos
-     * @return string|null
-     */
-    private function extractBalancedParentheses(string $text, int $startPos): ?string
-    {
-        $depth = 0;
-        $length = strlen($text);
-        $content = '';
-
-        for ($i = $startPos; $i < $length; $i++) {
-            $char = $text[$i];
-
-            if ($char === '(') {
-                $depth++;
-                if ($depth > 1) {
-                    $content .= $char;
-                }
-            } elseif ($char === ')') {
-                $depth--;
-                if ($depth === 0) {
-                    return $content;
-                }
-                $content .= $char;
-            } else {
-                if ($depth > 0) {
-                    $content .= $char;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Parse comma-separated arguments, respecting quotes and parentheses
-     *
-     * @param string $argsString
-     * @return array<string>
-     */
-    private function parseArguments(string $argsString): array
-    {
-        $arguments = [];
-        $current = '';
-        $inQuotes = false;
-        $quoteChar = null;
-        $parenDepth = 0;
-        $length = strlen($argsString);
-
-        for ($i = 0; $i < $length; $i++) {
-            $char = $argsString[$i];
-
-            if (($char === '"' || $char === "'") && ($i === 0 || $argsString[$i - 1] !== '\\')) {
-                if (!$inQuotes) {
-                    $inQuotes = true;
-                    $quoteChar = $char;
-                } elseif ($char === $quoteChar) {
-                    $inQuotes = false;
-                    $quoteChar = null;
-                }
-                $current .= $char;
-            } elseif ($char === '(' && !$inQuotes) {
-                $parenDepth++;
-                $current .= $char;
-            } elseif ($char === ')' && !$inQuotes) {
-                $parenDepth--;
-                $current .= $char;
-            } elseif ($char === ',' && !$inQuotes && $parenDepth === 0) {
-                $arguments[] = trim($current);
-                $current = '';
-            } else {
-                $current .= $char;
-            }
-        }
-
-        if ($current !== '') {
-            $arguments[] = trim($current);
-        }
-
-        return $arguments;
-    }
-
-    /**
-     * Get nested value from array/object using dot notation
-     * Supports: arrays, object properties, and method calls
-     *
-     * @param array<mixed> $data
-     * @param string $key
-     * @return mixed
-     */
-    private function getNestedValue(array $data, string $key): mixed
-    {
-        if (isset($data[$key])) {
-            return $data[$key];
-        }
-
-        $keys = explode('.', $key);
-        $value = $data;
-
-        foreach ($keys as $k) {
-            $value = $this->getValue($value, $k);
-            if ($value === null) {
-                return null;
-            }
-        }
-
-        return $value;
-    }
-
-    /**
-     * Get value from array or object - tries multiple strategies
-     *
-     * @param mixed $value Current value (array or object)
-     * @param string $key Key to access
-     * @return mixed
-     */
-    private function getValue(mixed $value, string $key): mixed
-    {
-        // Strategy 1: Array access
-        if (is_array($value) && isset($value[$key])) {
-            return $value[$key];
-        }
-
-        // Strategy 2: Object getter method (getName for "name")
-        // Try getters first before direct property access
-        if (is_object($value)) {
-            $getter = 'get' . ucfirst($key);
-            if (method_exists($value, $getter)) {
-                return $value->$getter();
-            }
-        }
-
-        // Strategy 3: Object is method (isActive for "active")
-        if (is_object($value)) {
-            $isMethod = 'is' . ucfirst($key);
-            if (method_exists($value, $isMethod)) {
-                return $value->$isMethod();
-            }
-        }
-
-        // Strategy 4: Object method call - exact name
-        if (is_object($value) && method_exists($value, $key)) {
-            return $value->$key();
-        }
-
-        // Strategy 5: Object property - only try if accessible (public)
-        if (is_object($value)) {
-            try {
-                // Use reflection to check if property is public
-                $reflection = new \ReflectionClass($value);
-                if ($reflection->hasProperty($key)) {
-                    $property = $reflection->getProperty($key);
-                    if ($property->isPublic()) {
-                        return $value->$key;
-                    }
-                }
-            } catch (\ReflectionException $e) {
-                // Property doesn't exist, continue
-            }
-        }
-
-        return null;
     }
 }

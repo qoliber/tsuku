@@ -16,7 +16,7 @@ class NumberFormattingTest extends TestCase
         $this->tsuku = new Tsuku();
     }
 
-    public function test_number_formats_with_defaults(): void
+    public function testNumberFormatsWithDefaults(): void
     {
         $template = '@number(1234.567)';
         $result = $this->tsuku->process($template, []);
@@ -24,7 +24,7 @@ class NumberFormattingTest extends TestCase
         $this->assertSame('1,235', $result);
     }
 
-    public function test_number_formats_with_decimals(): void
+    public function testNumberFormatsWithDecimals(): void
     {
         $template = '@number(1234.567, 2)';
         $result = $this->tsuku->process($template, []);
@@ -32,7 +32,7 @@ class NumberFormattingTest extends TestCase
         $this->assertSame('1,234.57', $result);
     }
 
-    public function test_number_formats_with_custom_separators(): void
+    public function testNumberFormatsWithCustomSeparators(): void
     {
         $template = '@number(1234.567, 2, ",", ".")';
         $result = $this->tsuku->process($template, []);
@@ -40,7 +40,7 @@ class NumberFormattingTest extends TestCase
         $this->assertSame('1.234,57', $result);
     }
 
-    public function test_number_formats_european_style(): void
+    public function testNumberFormatsEuropeanStyle(): void
     {
         $template = '@number(1234567.89, 2, ",", " ")';
         $result = $this->tsuku->process($template, []);
@@ -48,7 +48,7 @@ class NumberFormattingTest extends TestCase
         $this->assertSame('1 234 567,89', $result);
     }
 
-    public function test_number_format_alias_works(): void
+    public function testNumberFormatAliasWorks(): void
     {
         $template = '@number_format(1234.56, 2)';
         $result = $this->tsuku->process($template, []);
@@ -56,7 +56,7 @@ class NumberFormattingTest extends TestCase
         $this->assertSame('1,234.56', $result);
     }
 
-    public function test_number_formatting_in_template_with_variables(): void
+    public function testNumberFormattingInTemplateWithVariables(): void
     {
         $template = 'Price: $@number(product.price, 2)';
         $result = $this->tsuku->process($template, [
@@ -66,7 +66,7 @@ class NumberFormattingTest extends TestCase
         $this->assertSame('Price: $1,299.99', $result);
     }
 
-    public function test_number_formatting_in_loop(): void
+    public function testNumberFormattingInLoop(): void
     {
         $template = '@for(products as product)
 Product: {product.name} - $@number(product.price, 2)
@@ -86,7 +86,7 @@ Product: Gadget - $9,876.54
         $this->assertSame($expected, $result);
     }
 
-    public function test_number_formatting_with_zero(): void
+    public function testNumberFormattingWithZero(): void
     {
         $template = '@number(0, 2)';
         $result = $this->tsuku->process($template, []);
@@ -94,7 +94,7 @@ Product: Gadget - $9,876.54
         $this->assertSame('0.00', $result);
     }
 
-    public function test_number_formatting_with_negative(): void
+    public function testNumberFormattingWithNegative(): void
     {
         $template = '@number(-1234.56, 2)';
         $result = $this->tsuku->process($template, []);
@@ -102,7 +102,7 @@ Product: Gadget - $9,876.54
         $this->assertSame('-1,234.56', $result);
     }
 
-    public function test_number_formatting_large_number(): void
+    public function testNumberFormattingLargeNumber(): void
     {
         $template = '@number(1234567890.123, 3)';
         $result = $this->tsuku->process($template, []);
@@ -110,7 +110,7 @@ Product: Gadget - $9,876.54
         $this->assertSame('1,234,567,890.123', $result);
     }
 
-    public function test_number_formatting_no_thousands_separator(): void
+    public function testNumberFormattingNoThousandsSeparator(): void
     {
         $template = '@number(1234.56, 2, ".", "")';
         $result = $this->tsuku->process($template, []);
@@ -118,7 +118,7 @@ Product: Gadget - $9,876.54
         $this->assertSame('1234.56', $result);
     }
 
-    public function test_round_function(): void
+    public function testRoundFunction(): void
     {
         $template = '@round(1234.567, 2)';
         $result = $this->tsuku->process($template, []);
@@ -126,7 +126,7 @@ Product: Gadget - $9,876.54
         $this->assertSame('1234.57', $result);
     }
 
-    public function test_ceil_function(): void
+    public function testCeilFunction(): void
     {
         $template = '@ceil(1234.1)';
         $result = $this->tsuku->process($template, []);
@@ -134,7 +134,7 @@ Product: Gadget - $9,876.54
         $this->assertSame('1235', $result);
     }
 
-    public function test_floor_function(): void
+    public function testFloorFunction(): void
     {
         $template = '@floor(1234.9)';
         $result = $this->tsuku->process($template, []);
@@ -142,7 +142,7 @@ Product: Gadget - $9,876.54
         $this->assertSame('1234', $result);
     }
 
-    public function test_abs_function(): void
+    public function testAbsFunction(): void
     {
         $template = '@abs(-1234.56)';
         $result = $this->tsuku->process($template, []);

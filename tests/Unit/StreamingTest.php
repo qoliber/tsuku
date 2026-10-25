@@ -301,4 +301,26 @@ TPL;
             \Qoliber\Tsuku\StrictnessMode::STRICT
         );
     }
+
+    public function testProcessorPassesDirectiveRegistryToEveryPiece(): void
+    {
+        $directives = new \Qoliber\Tsuku\DirectiveRegistry();
+        $directives->register('up', fn(string $body): string => strtoupper($body));
+        $output = '';
+
+        (new \Qoliber\Tsuku\Streaming\StreamingProcessor())->process(
+            "@up(){title}@end\n@for(rows as r)@up(){r}@end,@end\n@up()end@end",
+            ['title' => 'feed'],
+            ['a', 'b'],
+            'rows',
+            function (string $chunk) use (&$output): void {
+                $output .= $chunk;
+            },
+            new \Qoliber\Tsuku\ProcessingContext(),
+            new \Qoliber\Tsuku\Function\FunctionRegistry(),
+            $directives
+        );
+
+        $this->assertSame("FEED\nA,B,\nEND", $output);
+    }
 }

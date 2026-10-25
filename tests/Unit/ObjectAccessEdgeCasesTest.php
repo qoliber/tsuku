@@ -7,100 +7,6 @@ namespace Qoliber\Tsuku\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use Qoliber\Tsuku\Tsuku;
 
-// Test class with magic methods
-class MagicObject
-{
-    private array $data = ['magic' => 'works', 'count' => 42];
-
-    public function __get(string $name): mixed
-    {
-        return $this->data[$name] ?? null;
-    }
-
-    public function __call(string $name, array $arguments): mixed
-    {
-        if ($name === 'getDynamic') {
-            return 'dynamic result';
-        }
-        return null;
-    }
-
-    public function __isset(string $name): bool
-    {
-        return isset($this->data[$name]);
-    }
-}
-
-// Test class implementing ArrayAccess
-class ArrayAccessObject implements \ArrayAccess
-{
-    private array $data = ['key1' => 'value1', 'key2' => 'value2'];
-
-    public function offsetExists(mixed $offset): bool
-    {
-        return isset($this->data[$offset]);
-    }
-
-    public function offsetGet(mixed $offset): mixed
-    {
-        return $this->data[$offset] ?? null;
-    }
-
-    public function offsetSet(mixed $offset, mixed $value): void
-    {
-        $this->data[$offset] = $value;
-    }
-
-    public function offsetUnset(mixed $offset): void
-    {
-        unset($this->data[$offset]);
-    }
-}
-
-// Test class that returns objects
-class Profile
-{
-    public function __construct(
-        private string $bio,
-        private Address $address
-    ) {
-    }
-
-    public function getBio(): string
-    {
-        return $this->bio;
-    }
-
-    public function getAddress(): Address
-    {
-        return $this->address;
-    }
-}
-
-class Address
-{
-    public function __construct(
-        private string $city,
-        private string $country
-    ) {
-    }
-
-    public function getCity(): string
-    {
-        return $this->city;
-    }
-
-    public function getCountry(): string
-    {
-        return $this->country;
-    }
-
-    public function getFullAddress(): string
-    {
-        return "{$this->city}, {$this->country}";
-    }
-}
-
 class ObjectAccessEdgeCasesTest extends TestCase
 {
     private Tsuku $tsuku;
@@ -127,6 +33,9 @@ class ObjectAccessEdgeCasesTest extends TestCase
     public function testObjectMethodReturningArray(): void
     {
         $product = new class {
+            /**
+             * @return array<int, string>
+             */
             public function getTags(): array
             {
                 return ['new', 'featured', 'trending'];
@@ -242,6 +151,9 @@ No items
                 return 'Electronics';
             }
 
+            /**
+             * @return array<int, mixed>
+             */
             public function getProducts(): array
             {
                 return [

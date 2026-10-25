@@ -25,7 +25,7 @@ class CaseNode implements Node
     ) {
     }
 
-    public function accept(NodeVisitor $visitor): string
+    public function accept(NodeVisitor $visitor): mixed
     {
         return $visitor->visitCase($this);
     }

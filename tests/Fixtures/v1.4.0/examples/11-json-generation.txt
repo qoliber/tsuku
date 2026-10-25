@@ -1,0 +1,4 @@
+=== JSON GENERATION EXAMPLES ===
+
+1. REST API - Product List Response
+------------------------------------------------------------

@@ -17,8 +17,6 @@ use Qoliber\Tsuku\DirectiveRegistry;
 use Qoliber\Tsuku\FormatterRegistry;
 use Qoliber\Tsuku\Function\FunctionRegistry;
 use Qoliber\Tsuku\ProcessingContext;
-use Qoliber\Tsuku\Lexer\Lexer;
-use Qoliber\Tsuku\Ast\Parser;
 use Qoliber\Tsuku\Compiler\Compiler;
 
 class Template implements TemplateInterface
@@ -45,16 +43,13 @@ class Template implements TemplateInterface
         FormatterRegistry $formatters,
         ?FunctionRegistry $functionRegistry = null
     ): string {
-        // Step 1: Tokenize
-        $lexer = new Lexer($this->template);
-        $tokens = $lexer->tokenize();
+        $functionRegistry ??= new FunctionRegistry();
 
-        // Step 2: Parse into AST
-        $parser = new Parser($tokens);
-        $ast = $parser->parse();
+        // Steps 1 + 2: tokenize (with whitespace control) and parse into AST
+        $ast = (new TemplateParser($functionRegistry, $directives))->parse($this->template);
 
         // Step 3: Compile to output
-        $compiler = new Compiler($data, $context, $functionRegistry);
+        $compiler = new Compiler($data, $context, $functionRegistry, $directives);
         return $compiler->compile($ast);
     }
 }

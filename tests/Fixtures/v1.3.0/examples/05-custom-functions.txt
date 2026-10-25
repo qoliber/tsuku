@@ -1,0 +1,26 @@
+=== Custom Functions Examples ===
+
+1. Simple Custom Function:
+Welcome message: Hello, John!
+
+2. Multi-argument Function:
+Total: €99.99
+
+3. HTML-generating Function:
+Status: <span class="badge badge-green">Active</span>
+
+4. Array-processing Function:
+Names: Alice, Bob, Charlie
+
+5. Variadic Function:
+Ingredients: flour, sugar, eggs and milk
+
+6. Closure-based Function with External Data:
+Visit: https://example.com/products
+
+7. Date Formatting Function:
+Published: January 15, 2024
+
+8. Chained Custom Functions:
+URL: /blog/hello-world-
+

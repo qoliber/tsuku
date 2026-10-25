@@ -14,12 +14,12 @@ declare(strict_types=1);
 namespace Qoliber\Tsuku\Streaming;
 
 use Qoliber\Tsuku\Ast\ForNode;
-use Qoliber\Tsuku\Ast\Parser;
 use Qoliber\Tsuku\Ast\TemplateNode;
 use Qoliber\Tsuku\Compiler\Compiler;
+use Qoliber\Tsuku\DirectiveRegistry;
 use Qoliber\Tsuku\Function\FunctionRegistry;
-use Qoliber\Tsuku\Lexer\Lexer;
 use Qoliber\Tsuku\ProcessingContext;
+use Qoliber\Tsuku\Template\TemplateParser;
 
 /**
  * Streams a template through a writer, materializing only one row at a time.
@@ -31,6 +31,8 @@ use Qoliber\Tsuku\ProcessingContext;
  */
 class StreamingProcessor
 {
+    private ?DirectiveRegistry $directiveRegistry = null;
+
     /**
      * @param string $template
      * @param array<mixed> $contextData
@@ -39,6 +41,7 @@ class StreamingProcessor
      * @param callable(string): void $writer
      * @param \Qoliber\Tsuku\ProcessingContext $context
      * @param \Qoliber\Tsuku\Function\FunctionRegistry $functionRegistry
+     * @param \Qoliber\Tsuku\DirectiveRegistry|null $directiveRegistry
      * @return void
      */
     public function process(
@@ -48,17 +51,19 @@ class StreamingProcessor
         string $rowsVariable,
         callable $writer,
         ProcessingContext $context,
-        FunctionRegistry $functionRegistry
+        FunctionRegistry $functionRegistry,
+        ?DirectiveRegistry $directiveRegistry = null
     ): void {
-        $tokens = (new Lexer($template))->tokenize();
-        $ast = (new Parser($tokens))->parse();
+        $this->directiveRegistry = $directiveRegistry;
+        $ast = (new TemplateParser($functionRegistry, $directiveRegistry))->parse($template);
 
         [$forIndex, $forNode] = $this->findStreamFor($ast, $rowsVariable);
 
-        $headerChildren = array_slice($ast->children, 0, $forIndex);
-        $footerChildren = array_slice($ast->children, $forIndex + 1);
+        $header = new TemplateNode(array_slice($ast->children, 0, $forIndex));
+        $body = new TemplateNode($forNode->children);
+        $footer = new TemplateNode(array_slice($ast->children, $forIndex + 1));
 
-        $this->renderAndWrite($headerChildren, $contextData, $context, $functionRegistry, $writer);
+        $this->renderAndWrite($header, $contextData, $context, $functionRegistry, $writer);
 
         foreach ($rows as $key => $row) {
             $iterationData = $contextData;
@@ -66,10 +71,10 @@ class StreamingProcessor
             if ($forNode->keyVar !== null) {
                 $iterationData[$forNode->keyVar] = $key;
             }
-            $this->renderAndWrite($forNode->children, $iterationData, $context, $functionRegistry, $writer);
+            $this->renderAndWrite($body, $iterationData, $context, $functionRegistry, $writer);
         }
 
-        $this->renderAndWrite($footerChildren, $contextData, $context, $functionRegistry, $writer);
+        $this->renderAndWrite($footer, $contextData, $context, $functionRegistry, $writer);
     }
 
     /**
@@ -107,7 +112,7 @@ class StreamingProcessor
     }
 
     /**
-     * @param array<\Qoliber\Tsuku\Ast\Node> $children
+     * @param \Qoliber\Tsuku\Ast\TemplateNode $tree
      * @param array<mixed> $data
      * @param \Qoliber\Tsuku\ProcessingContext $context
      * @param \Qoliber\Tsuku\Function\FunctionRegistry $functionRegistry
@@ -115,19 +120,18 @@ class StreamingProcessor
      * @return void
      */
     private function renderAndWrite(
-        array $children,
+        TemplateNode $tree,
         array $data,
         ProcessingContext $context,
         FunctionRegistry $functionRegistry,
         callable $writer
     ): void {
-        if ($children === []) {
+        if ($tree->children === []) {
             return;
         }
 
-        $subTree = new TemplateNode($children);
-        $compiler = new Compiler($data, $context, $functionRegistry);
-        $rendered = $compiler->compile($subTree);
+        $compiler = new Compiler($data, $context, $functionRegistry, $this->directiveRegistry);
+        $rendered = $compiler->compile($tree);
 
         if ($rendered !== '') {
             $writer($rendered);

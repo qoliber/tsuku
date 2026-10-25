@@ -1,0 +1,316 @@
+=== HTML GENERATION EXAMPLES ===
+
+1. Product Card with Complex Data
+------------------------------------------------------------
+<div class="product-grid">
+  <article class="product-card" data-product-id="WID-001">
+    <div class="product-image">
+      <img src="https://example.com/images/widget-pro.jpg"
+           alt="Premium Widget Pro Edition - Professional Grade"
+           width="400"
+           height="400">
+      <span class="badge badge-sale">SALE</span>
+    </div>
+    <div class="product-content">
+      <h3 class="product-title">Premium Widget &quot;Pro Edition&quot;</h3>
+      <p class="product-description">A &lt;premium&gt; widget with advanced features &amp; capabilities for professional use</p>
+      <div class="product-meta">
+        <div class="product-price">
+          <span class="price-old">$129.99</span>
+          <span class="price-sale">$99.99</span>
+        </div>
+        <div class="product-rating">
+          <span class="star filled">★</span>
+          <span class="star filled">★</span>
+          <span class="star filled">★</span>
+          <span class="star filled">★</span>
+          <span class="star empty">★</span>
+          <span class="rating-count">(128)</span>
+        </div>
+      </div>
+      <div class="product-actions">
+        <button class="btn btn-primary" data-action="add-to-cart" data-product-id="WID-001">
+          Add to Cart
+        </button>
+        <p class="stock-status in-stock">Only 5 in stock</p>
+      </div>
+    </div>
+  </article>
+  <article class="product-card" data-product-id="GAD-002">
+    <div class="product-image">
+      <img src="https://example.com/images/gadget-ultimate.jpg"
+           alt="Professional Gadget Ultimate Edition"
+           width="400"
+           height="400">
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="product-content">
+      <h3 class="product-title">Professional Gadget &lt;Ultimate&gt;</h3>
+      <p class="product-description">The ultimate gadget for professionals who demand the best</p>
+      <div class="product-meta">
+        <div class="product-price">
+          <span class="price">$599.00</span>
+        </div>
+        <div class="product-rating">
+          <span class="star filled">★</span>
+          <span class="star filled">★</span>
+          <span class="star filled">★</span>
+          <span class="star filled">★</span>
+          <span class="star filled">★</span>
+          <span class="rating-count">(256)</span>
+        </div>
+      </div>
+      <div class="product-actions">
+        <button class="btn btn-secondary" disabled>Out of Stock</button>
+        <p class="stock-status out-of-stock">Notify me when available</p>
+      </div>
+    </div>
+  </article>
+</div>
+
+2. User Profile Dashboard
+------------------------------------------------------------
+<div class="dashboard">
+  <div class="profile-header">
+    <img src="https://example.com/avatars/john.jpg" alt="John Doe &lt;Admin&gt;" class="avatar">
+    <div class="profile-info">
+      <h1>John Doe &lt;Admin&gt;</h1>
+      <p class="bio">Software developer &amp; tech enthusiast. Love building &lt;amazing&gt; things!</p>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-value">42</span>
+          <span class="stat-label">Orders</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">128</span>
+          <span class="stat-label">Reviews</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">5</span>
+          <span class="stat-label">Wishlist</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-content">
+    <section class="orders">
+      <h2>Recent Orders</h2>
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Date</th>
+            <th>Total</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="/orders/ORD-1001">ORD-1001</a></td>
+            <td>Jan 15, 2025</td>
+            <td>$299.99</td>
+            <td>
+              <span class="status status-completed">
+                 ✓ Completed
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td><a href="/orders/ORD-1002">ORD-1002</a></td>
+            <td>Jan 10, 2025</td>
+            <td>$149.50</td>
+            <td>
+              <span class="status status-pending">
+                 ⏳ Pending
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="addresses">
+      <h2>Saved Addresses</h2>
+      <div class="address-card default">
+        <h3>Home</h3>
+        <p>123 Main St, Apt #4<br>
+           San Francisco, CA 94102<br>
+           USA</p>
+        <span class="badge">Default</span>
+      </div>
+      <div class="address-card ">
+        <h3>Office</h3>
+        <p>456 Business Ave, Suite 200<br>
+           New York, NY 10001<br>
+           USA</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+3. Blog Article List
+------------------------------------------------------------
+<div class="blog-posts">
+  <article class="blog-post">
+    <header class="post-header">
+      <img src="https://example.com/images/php-guide.jpg"
+           alt="Modern PHP Development Guide"
+           class="featured-image">
+      <h2><a href="https://example.com/blog/modern-php">Getting Started with Modern PHP &amp; Best Practices</a></h2>
+      <div class="post-meta">
+        <div class="author">
+          <img src="https://example.com/avatars/jane.jpg" alt="Jane Smith &lt;Tech Lead&gt;" class="author-avatar">
+          <span>By <a href="https://example.com/author/jane-smith">Jane Smith &lt;Tech Lead&gt;</a></span>
+        </div>
+        <time datetime="2025-01-15">January 15, 2025</time>
+        <span class="read-time">8 min read</span>
+      </div>
+    </header>
+    <div class="post-content">
+      <p>Learn how to write clean, maintainable PHP code using &lt;modern&gt; techniques and best practices...</p>
+      <div class="post-tags">
+        <a href="/tag/php" class="tag">PHP</a>
+        <a href="/tag/best-practices" class="tag">Best Practices</a>
+        <a href="/tag/tutorial" class="tag">Tutorial</a>
+      </div>
+    </div>
+    <footer class="post-footer">
+      <div class="post-stats">
+        <span>👁 1250 views</span>
+        <span>💬 42 comments</span>
+        <span>❤️ 128 likes</span>
+      </div>
+      <a href="https://example.com/blog/modern-php" class="read-more">Read More →</a>
+    </footer>
+  </article>
+  <article class="blog-post">
+    <header class="post-header">
+      <h2><a href="https://example.com/blog/rest-api-php">Building RESTful APIs with PHP 8.1+</a></h2>
+      <div class="post-meta">
+        <div class="author">
+          <img src="https://example.com/avatars/bob.jpg" alt="Bob Johnson" class="author-avatar">
+          <span>By <a href="https://example.com/author/bob-johnson">Bob Johnson</a></span>
+        </div>
+        <time datetime="2025-01-10">January 10, 2025</time>
+        <span class="read-time">12 min read</span>
+      </div>
+    </header>
+    <div class="post-content">
+      <p>A comprehensive guide to building modern REST APIs using PHP 8.1+ features &amp; frameworks...</p>
+      <div class="post-tags">
+        <a href="/tag/php" class="tag">PHP</a>
+        <a href="/tag/api" class="tag">API</a>
+        <a href="/tag/rest" class="tag">REST</a>
+      </div>
+    </div>
+    <footer class="post-footer">
+      <div class="post-stats">
+        <span>👁 892 views</span>
+        <span>💬 28 comments</span>
+        <span>❤️ 95 likes</span>
+      </div>
+      <a href="https://example.com/blog/rest-api-php" class="read-more">Read More →</a>
+    </footer>
+  </article>
+</div>
+
+4. Checkout Form with Validation
+------------------------------------------------------------
+<form class="checkout-form" method="post" action="/checkout">
+  <section class="form-section">
+    <h2>Shipping Information</h2>
+    <div class="form-grid">
+      <div class="form-group required">
+        <label for="full_name">
+          Full Name
+          <span class="required">*</span>
+        </label>
+        <input type="text"
+               id="full_name"
+               name="full_name"
+               placeholder="John Doe"
+               required>
+      </div>
+      <div class="form-group required">
+        <label for="email">
+          Email
+          <span class="required">*</span>
+        </label>
+        <input type="email"
+               id="email"
+               name="email"
+               placeholder="john@example.com"
+               required>
+        <small class="help-text">We&apos;ll send order confirmation to this email</small>
+      </div>
+      <div class="form-group required">
+        <label for="phone">
+          Phone Number
+          <span class="required">*</span>
+        </label>
+        <input type="tel"
+               id="phone"
+               name="phone"
+               placeholder="+1 (555) 123-4567"
+               required>
+      </div>
+      <div class="form-group required">
+        <label for="country">
+          Country
+          <span class="required">*</span>
+        </label>
+        <select id="country" name="country" required>
+          <option value="">Select Country</option>
+          <option value="US">United States</option>
+          <option value="CA">Canada</option>
+          <option value="UK">United Kingdom</option>
+        </select>
+      </div>
+      <div class="form-group ">
+        <label for="notes">
+          Order Notes
+        </label>
+        <textarea id="notes"
+                  name="notes"
+                  placeholder="Any special instructions?"
+                  rows="3"></textarea>
+        <small class="help-text">Optional delivery instructions</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <h2>Order Summary</h2>
+    <table class="order-summary">
+      <tr>
+        <td>Premium Widget × 2</td>
+        <td class="text-right">$0.00</td>
+      </tr>
+      <tr>
+        <td>Gadget Pro × 1</td>
+        <td class="text-right">$0.00</td>
+      </tr>
+      <tr class="subtotal">
+        <td>Subtotal</td>
+        <td class="text-right">$119.97</td>
+      </tr>
+      <tr class="shipping">
+        <td>Shipping</td>
+        <td class="text-right">$9.99</td>
+      </tr>
+      <tr class="tax">
+        <td>Tax</td>
+        <td class="text-right">$12.00</td>
+      </tr>
+      <tr class="total">
+        <td><strong>Total</strong></td>
+        <td class="text-right"><strong>$141.96</strong></td>
+      </tr>
+    </table>
+  </section>
+
+  <button type="submit" class="btn btn-primary btn-lg">Complete Order</button>
+</form>
+
+=== All HTML examples completed! ===

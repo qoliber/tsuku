@@ -16,7 +16,7 @@ class LineContinuationTest extends TestCase
         $this->tsuku = new Tsuku();
     }
 
-    public function test_line_continuation_with_csv_functions(): void
+    public function testLineContinuationWithCsvFunctions(): void
     {
         $template = '@csv("Product A"),\
 @csv("SKU123"),\
@@ -26,7 +26,7 @@ class LineContinuationTest extends TestCase
         $this->assertSame('Product A,SKU123,99.99', $result);
     }
 
-    public function test_line_continuation_with_variables(): void
+    public function testLineContinuationWithVariables(): void
     {
         $template = '{name},\
 {sku},\
@@ -41,7 +41,7 @@ class LineContinuationTest extends TestCase
         $this->assertSame('Widget,WID-001,29.99', $result);
     }
 
-    public function test_line_continuation_with_plain_text(): void
+    public function testLineContinuationWithPlainText(): void
     {
         $template = 'This is a long \
 line of text';
@@ -50,7 +50,7 @@ line of text';
         $this->assertSame('This is a long line of text', $result);
     }
 
-    public function test_line_continuation_multiple_lines(): void
+    public function testLineContinuationMultipleLines(): void
     {
         $template = 'Line 1\
 Line 2\
@@ -60,7 +60,7 @@ Line 3';
         $this->assertSame('Line 1Line 2Line 3', $result);
     }
 
-    public function test_line_continuation_with_functions_and_text(): void
+    public function testLineContinuationWithFunctionsAndText(): void
     {
         $template = '@upper("hello"),\
 @lower("WORLD"),\
@@ -70,7 +70,7 @@ Line 3';
         $this->assertSame('HELLO,world,Test', $result);
     }
 
-    public function test_line_continuation_in_loop(): void
+    public function testLineContinuationInLoop(): void
     {
         $template = '@for(products as product)
 @csv(product.name),\
@@ -90,7 +90,7 @@ Product B,SKU-002,20.00
 ', $result);
     }
 
-    public function test_line_continuation_csv_export(): void
+    public function testLineContinuationCsvExport(): void
     {
         $template = 'Name,SKU,Price,Stock
 @for(products as product)
@@ -125,7 +125,7 @@ Product B,SKU-002,20.00
         $this->assertSame($expected, $result);
     }
 
-    public function test_backslash_without_newline_preserved(): void
+    public function testBackslashWithoutNewlinePreserved(): void
     {
         $template = 'Path: C:\Windows\System32';
 
@@ -133,7 +133,7 @@ Product B,SKU-002,20.00
         $this->assertSame('Path: C:\Windows\System32', $result);
     }
 
-    public function test_double_backslash_before_newline(): void
+    public function testDoubleBackslashBeforeNewline(): void
     {
         $template = 'First\\
 Second';
@@ -143,7 +143,7 @@ Second';
         $this->assertSame('FirstSecond', $result);
     }
 
-    public function test_line_continuation_windows_newline(): void
+    public function testLineContinuationWindowsNewline(): void
     {
         $template = "First\\\r\nSecond";
 

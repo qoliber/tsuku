@@ -27,7 +27,7 @@ class MatchNode implements Node
     ) {
     }
 
-    public function accept(NodeVisitor $visitor): string
+    public function accept(NodeVisitor $visitor): mixed
     {
         return $visitor->visitMatch($this);
     }

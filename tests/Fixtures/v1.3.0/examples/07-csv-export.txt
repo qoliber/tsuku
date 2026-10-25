@@ -1,0 +1,35 @@
+=== CSV EXPORT EXAMPLES ===
+
+1. Basic Product Export
+------------------------------------------------------------
+SKU,Name,Price,Stock
+WID-001,Premium Widget,$29.99,100
+GAD-002,"Gadget, ""Professional""",$1,299.50,50
+DOO-003,Doohickey Pro,$599.00,0
+
+2. Product Export with Categories
+------------------------------------------------------------
+Category,SKU,Name,Description,Price,Stock,Status
+  Electronics,ELEC-001,"Smart Phone ""Pro Max""","Latest flagship phone with amazing features, including: camera, display, and more",$999.99,25, Active   Electronics,ELEC-002,"Tablet 10""","Perfect for work, play, and everything in between",$599.00,0, Discontinued     Home & Garden,HOME-001,"Garden Hose, 50ft","Durable, kink-resistant garden hose",$49.99,100, Active   
+3. Customer Order Export
+------------------------------------------------------------
+Order ID,Date,Customer Name,Customer Email,Product,Quantity,Unit Price,Total,Status
+  ORD-1001,2025-01-15,John Doe,john.doe@example.com,Widget Pro,2,$29.99,$0.00,completed
+  ORD-1001,2025-01-15,John Doe,john.doe@example.com,"Gadget ""Premium""",1,$59.99,$0.00,completed
+    ORD-1002,2025-01-16,"Jane Smith, Jr.",jane.smith@example.com,Doohickey,5,$9.99,$0.00,pending
+  
+4. Inventory Report with Low Stock Alerts
+------------------------------------------------------------
+SKU,Product,Current Stock,Reorder Point,Alert
+WID-001,Widget A,5,10,LOW STOCK - REORDER NOW
+GAD-002,Gadget B,50,20,OK
+DOO-003,Doohickey C,0,5,LOW STOCK - REORDER NOW
+
+5. Sales Report with Calculations
+------------------------------------------------------------
+Product,Units Sold,Unit Price,Revenue,Profit Margin
+Premium Widget,150,$29.99,$0.00,0.0%
+Gadget Pro,75,$59.99,$0.00,0.0%
+Doohickey Basic,500,$9.99,$0.00,0.0%
+
+=== All CSV examples completed! ===

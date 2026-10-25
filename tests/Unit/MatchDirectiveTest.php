@@ -16,7 +16,7 @@ class MatchDirectiveTest extends TestCase
         $this->tsuku = new Tsuku();
     }
 
-    public function test_match_with_single_case(): void
+    public function testMatchWithSingleCase(): void
     {
         $template = '@match(status) @case("active") Active Status @end';
 
@@ -24,7 +24,7 @@ class MatchDirectiveTest extends TestCase
         $this->assertSame(' Active Status ', $result);
     }
 
-    public function test_match_with_multiple_cases(): void
+    public function testMatchWithMultipleCases(): void
     {
         $template = '@match(status)
 @case("active") ✓ Active
@@ -37,7 +37,7 @@ class MatchDirectiveTest extends TestCase
 ', $result);
     }
 
-    public function test_match_with_default(): void
+    public function testMatchWithDefault(): void
     {
         $template = '@match(status)
 @case("active") ✓ Active
@@ -50,7 +50,7 @@ class MatchDirectiveTest extends TestCase
 ', $result);
     }
 
-    public function test_match_with_numbers(): void
+    public function testMatchWithNumbers(): void
     {
         $template = '@match(code)
 @case(200) OK
@@ -63,7 +63,7 @@ class MatchDirectiveTest extends TestCase
 ', $result);
     }
 
-    public function test_match_with_multiple_values_in_case(): void
+    public function testMatchWithMultipleValuesInCase(): void
     {
         $template = '@match(status)
 @case("active", "verified") ✓ Good Status
@@ -76,7 +76,7 @@ class MatchDirectiveTest extends TestCase
 ', $result);
     }
 
-    public function test_match_with_variables_in_output(): void
+    public function testMatchWithVariablesInOutput(): void
     {
         $template = '@match(user.role)
 @case("admin") Welcome, Admin {user.name}!
@@ -92,7 +92,7 @@ class MatchDirectiveTest extends TestCase
 ', $result);
     }
 
-    public function test_match_in_loop(): void
+    public function testMatchInLoop(): void
     {
         $template = '@for(users as user){user.name}: @match(user.status) @case("active") ✓ @case("inactive") ✗ @end
 @end';
@@ -104,12 +104,13 @@ class MatchDirectiveTest extends TestCase
             ],
         ]);
 
-        $expected = 'Alice:  ✓ Bob:  ✗ ';
+        // Since 1.4.0 the line break after an inline @end is output, so each user gets a line
+        $expected = "Alice:  ✓ \nBob:  ✗ \n";
 
         $this->assertSame($expected, $result);
     }
 
-    public function test_nested_match_in_if(): void
+    public function testNestedMatchInIf(): void
     {
         $template = '@if(show_status)
 Status: @match(status)
@@ -128,7 +129,7 @@ Status: @match(status)
 ', $result);
     }
 
-    public function test_match_with_literal_strings(): void
+    public function testMatchWithLiteralStrings(): void
     {
         $template = '@match("test") @case("test") Matched! @default Not matched @end';
 
@@ -136,7 +137,7 @@ Status: @match(status)
         $this->assertSame(' Matched! ', $result);
     }
 
-    public function test_match_stops_at_first_match(): void
+    public function testMatchStopsAtFirstMatch(): void
     {
         $template = '@match(value)
 @case(1) First
@@ -149,7 +150,7 @@ Status: @match(status)
 ', $result);
     }
 
-    public function test_match_with_string_numbers(): void
+    public function testMatchWithStringNumbers(): void
     {
         $template = '@match(status) @case("1") One @case("2") Two @end';
 
@@ -157,7 +158,7 @@ Status: @match(status)
         $this->assertSame(' One ', $result);
     }
 
-    public function test_match_with_complex_expressions(): void
+    public function testMatchWithComplexExpressions(): void
     {
         $template = '@match(order.status)
 @case("shipped") Order #{order.id} has shipped
@@ -173,7 +174,7 @@ Status: @match(status)
 ', $result);
     }
 
-    public function test_match_empty_default(): void
+    public function testMatchEmptyDefault(): void
     {
         $template = '@match(status) @case("active") Active @default @end';
 
@@ -181,7 +182,7 @@ Status: @match(status)
         $this->assertSame(' ', $result);
     }
 
-    public function test_match_no_cases_with_default(): void
+    public function testMatchNoCasesWithDefault(): void
     {
         $template = '@match(status) @default Default content @end';
 
@@ -189,7 +190,7 @@ Status: @match(status)
         $this->assertSame(' Default content ', $result);
     }
 
-    public function test_match_with_loose_comparison(): void
+    public function testMatchWithLooseComparison(): void
     {
         $template = '@match(value)
 @case(1) Integer 1
@@ -202,7 +203,7 @@ Status: @match(status)
 ', $result);
     }
 
-    public function test_match_with_functions_in_output(): void
+    public function testMatchWithFunctionsInOutput(): void
     {
         $template = '@match(type)
 @case("uppercase") @upper(text)
@@ -219,7 +220,7 @@ Status: @match(status)
 ', $result);
     }
 
-    public function test_match_real_world_status_badge(): void
+    public function testMatchRealWorldStatusBadge(): void
     {
         $template = '@for(orders as order)
 Order #{order.id}: @match(order.status)

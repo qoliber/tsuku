@@ -22,7 +22,7 @@ class Tsuku
     private ProcessingContext $context;
 
     public function __construct(
-        private readonly StrictnessMode $strictnessMode = StrictnessMode::SILENT,
+        StrictnessMode $strictnessMode = StrictnessMode::SILENT,
         private readonly DirectiveRegistry $directiveRegistry = new DirectiveRegistry(),
         private readonly FormatterRegistry $formatterRegistry = new FormatterRegistry(),
         private readonly FunctionRegistry $functionRegistry = new FunctionRegistry(),
@@ -49,7 +49,14 @@ class Tsuku
             : $this->context;
 
         $templateObject = new Template($template);
-        return $templateObject->render($data, $context, $this->directiveRegistry, $this->formatterRegistry, $this->functionRegistry);
+
+        return $templateObject->render(
+            $data,
+            $context,
+            $this->directiveRegistry,
+            $this->formatterRegistry,
+            $this->functionRegistry
+        );
     }
 
     /**
@@ -93,7 +100,8 @@ class Tsuku
             $rowsVariable,
             $writer,
             $context,
-            $this->functionRegistry
+            $this->functionRegistry,
+            $this->directiveRegistry
         );
     }
 
@@ -118,11 +126,17 @@ class Tsuku
     }
 
     /**
-     * Register a custom directive
+     * Register a custom block directive: @name(arguments) ... @end
      *
-     * @param string $name
-     * @param callable $handler
+     * The handler is called as handler(string $body, mixed ...$arguments): the
+     * rendered body first, then the arguments resolved like function arguments.
+     * Its return value (cast to string) replaces the whole block. Errors thrown by
+     * the handler follow the strictness mode, like function errors.
+     *
+     * @param string $name Directive name without "@"
+     * @param callable $handler callable(string $body, mixed ...$arguments): mixed
      * @return self
+     * @throws \InvalidArgumentException For invalid or built-in directive names
      */
     public function registerDirective(string $name, callable $handler): self
     {

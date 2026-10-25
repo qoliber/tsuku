@@ -1,0 +1,152 @@
+=== XML EXPORT EXAMPLES ===
+
+1. Product Catalog XML Feed
+------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+  <product id="1">
+    <sku>WID-001</sku>
+    <name>Premium Widget &quot;Pro&quot;</name>
+    <description>A &lt;premium&gt; widget with advanced features &amp; capabilities</description>
+    <price currency="USD">29.99</price>
+    <stock>100</stock>
+    <status>active</status>
+    <images>
+      <image>https://example.com/images/widget-1.jpg</image>
+      <image>https://example.com/images/widget-2.jpg</image>
+    </images>
+  </product>
+  <product id="2">
+    <sku>GAD-002</sku>
+    <name>Gadget &lt;Professional&gt;</name>
+    <description>Professional gadget for serious users</description>
+    <price currency="USD">599</price>
+    <stock>25</stock>
+    <status>active</status>
+  </product>
+</catalog>
+
+2. Google Shopping Feed
+------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>My Store Product Feed</title>
+    <link>https://example.com</link>
+    <description>Product feed for Google Shopping</description>
+    <item>
+      <g:id>WID-001</g:id>
+      <g:title>Premium Widget &quot;Pro&quot; 2025</g:title>
+      <g:description>The best widget on the market - featuring &lt;advanced&gt; technology</g:description>
+      <g:link>https://example.com/products/premium-widget</g:link>
+      <g:image_link>https://example.com/images/widget.jpg</g:image_link>
+      <g:price>29.99 USD</g:price>
+      <g:availability> in stock </g:availability>
+      <g:condition>new</g:condition>
+      <g:brand>WidgetCo</g:brand>
+      <g:gtin>1234567890123</g:gtin>
+    </item>
+    <item>
+      <g:id>GAD-002</g:id>
+      <g:title>Professional Gadget &amp; Accessories</g:title>
+      <g:description>Professional-grade gadget with all the features you need</g:description>
+      <g:link>https://example.com/products/pro-gadget</g:link>
+      <g:image_link>https://example.com/images/gadget.jpg</g:image_link>
+      <g:price>599 USD</g:price>
+      <g:availability> out of stock </g:availability>
+      <g:condition>new</g:condition>
+      <g:brand>GadgetPro</g:brand>
+      <g:gtin>9876543210987</g:gtin>
+    </item>
+  </channel>
+</rss>
+
+3. XML Sitemap
+------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://example.com/</loc>
+    <lastmod>2025-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1</priority>
+  </url>
+  <url>
+    <loc>https://example.com/products</loc>
+    <lastmod>2025-01-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://example.com/about</loc>
+    <lastmod>2025-01-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>
+
+4. RSS Feed
+------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>My Blog &amp; News</title>
+    <link>https://example.com</link>
+    <description>Latest articles, news &amp; updates from our blog</description>
+    <language>en-us</language>
+    <item>
+      <title>Introducing New Features in 2025</title>
+      <link>https://example.com/blog/new-features-2025</link>
+      <description>We&apos;re excited to announce &lt;amazing&gt; new features coming this year</description>
+      <pubDate>Wed, 15 Jan 2025 10:00:00 +0000</pubDate>
+      <guid>https://example.com/blog/new-features-2025</guid>
+      <author>john@example.com (John Doe)</author>
+            <category>Product Updates</category>
+            <category>News</category>
+          </item>
+    <item>
+      <title>How to Use Our API</title>
+      <link>https://example.com/blog/api-guide</link>
+      <description>A comprehensive guide to using our API &amp; SDK</description>
+      <pubDate>Fri, 10 Jan 2025 14:30:00 +0000</pubDate>
+      <guid>https://example.com/blog/api-guide</guid>
+      <author>jane@example.com (Jane Smith)</author>
+            <category>Tutorials</category>
+            <category>Developers</category>
+          </item>
+  </channel>
+</rss>
+
+5. SOAP-style Web Service Response
+------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetOrdersResponse>
+      <Status>success</Status>
+      <Message>Orders retrieved successfully</Message>
+      <Orders>
+        <Order>
+          <OrderID>ORD-1001</OrderID>
+          <CustomerName>John Doe &amp; Associates</CustomerName>
+          <Total currency="USD">299.99</Total>
+          <Status>completed</Status>
+          <Items>
+                        <Item>
+              <ProductID>WID-001</ProductID>
+              <Quantity>2</Quantity>
+              <Price>29.99</Price>
+            </Item>
+                        <Item>
+              <ProductID>GAD-002</ProductID>
+              <Quantity>1</Quantity>
+              <Price>240.01</Price>
+            </Item>
+                      </Items>
+        </Order>
+      </Orders>
+    </GetOrdersResponse>
+  </soap:Body>
+</soap:Envelope>
+
+=== All XML examples completed! ===

@@ -1,0 +1,44 @@
+=== Advanced Examples ===
+
+1. Order Invoice Template:
+
+===========================================
+           INVOICE #12345
+===========================================
+
+Status: PAID 
+
+Items:
+  2x Widget - $49.99 = $99.98
+  1x Gadget - $99.99 = $99.99
+  3x Doohickey - $29.99 = $89.97
+-------------------------------------------
+Total: $289.94
+
+Thank you for your payment!
+===========================================
+
+
+2. User Dashboard:
+
+You have 3 notification(s):
+  - [URGENT] Security alert
+  - New message
+  - [URGENT] Payment due
+
+
+3. Product Listing with Stock Status:
+0. Premium Widget
+   Price: $99.99
+   Status: In Stock (50 units)
+   ON SALE! SPECIAL OFFER
+
+1. Basic Gadget
+   Price: $29.99
+   Status: Low Stock (5 units)
+
+2. Deluxe Doohickey
+   Price: $149.99
+   Status: OUT OF STOCK
+
+

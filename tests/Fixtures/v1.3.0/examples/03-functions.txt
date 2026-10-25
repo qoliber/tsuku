@@ -1,0 +1,24 @@
+=== Built-in Functions ===
+
+1. String Functions:
+Upper: HELLO WORLD, Lower: hello world
+
+2. Array Functions:
+Items: Apple, Banana, Orange
+
+3. Length Function:
+Total items: 4
+
+4. Default Value:
+Empty: Name: Guest
+Provided: Name: John
+
+5. Nested Functions:
+Result: GUEST
+
+6. Functions in Conditionals:
+Many items: A, B, C, D
+
+7. Functions with Variables:
+Greeting: HELLO, Alice and Bob!
+

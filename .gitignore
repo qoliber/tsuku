@@ -5,6 +5,14 @@ composer.lock
 .idea/
 .vscode/
 
+# Infection (composer test:mutation) reports and temp files
+/build/
+/infection.log
+/infection-report.html
+/infection-summary.log
+/infection.json
+/infection-per-mutator.md
+
 # PHP
 vendor/
 

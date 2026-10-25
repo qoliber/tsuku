@@ -13,36 +13,46 @@ declare(strict_types=1);
 
 namespace Qoliber\Tsuku\Ast;
 
+use Qoliber\Tsuku\Exception\ParseException;
+use Qoliber\Tsuku\Expression\ExpressionParser;
+use Qoliber\Tsuku\Function\FunctionRegistry;
+use Qoliber\Tsuku\Lexer\SourceMap;
 use Qoliber\Tsuku\Lexer\Token;
 use Qoliber\Tsuku\Lexer\TokenType;
-use Qoliber\Tsuku\Exception\ParseException;
+use Qoliber\Tsuku\Support\Syntax;
 
 class Parser
 {
     private int $current = 0;
 
+    private readonly ExpressionParser $expressions;
+
     /**
-     * @param array<\Qoliber\Tsuku\Lexer\Token> $tokens
+     * @param array<\Qoliber\Tsuku\Lexer\Token> $tokens Tokens ending with EOF (Lexer::tokenize())
+     * @param \Qoliber\Tsuku\Lexer\SourceMap|null $sourceMap Exact error positions inside conditions
+     * @param \Qoliber\Tsuku\Function\FunctionRegistry|null $functionRegistry When given, unknown
+     *        functions in conditions are rejected while parsing (otherwise when evaluated)
      */
     public function __construct(
         private readonly array $tokens,
+        private readonly ?SourceMap $sourceMap = null,
+        ?FunctionRegistry $functionRegistry = null,
     ) {
+        $this->expressions = new ExpressionParser($functionRegistry);
     }
 
     /**
      * Parse tokens into AST
      *
      * @return \Qoliber\Tsuku\Ast\TemplateNode
+     * @throws \Qoliber\Tsuku\Exception\ParseException
      */
     public function parse(): TemplateNode
     {
         $children = [];
 
         while (!$this->isAtEnd()) {
-            $node = $this->parseNode();
-            if ($node !== null) {
-                $children[] = $node;
-            }
+            $children[] = $this->parseNode();
         }
 
         return new TemplateNode($children);
@@ -51,281 +61,153 @@ class Parser
     /**
      * Parse a single node
      *
-     * @return \Qoliber\Tsuku\Ast\Node|null
+     * @return \Qoliber\Tsuku\Ast\Node
+     * @throws \Qoliber\Tsuku\Exception\ParseException
      */
-    private function parseNode(): ?Node
+    private function parseNode(): Node
     {
         $token = $this->peek();
 
         return match ($token->type) {
-            TokenType::TEXT => $this->parseText(),
-            TokenType::VARIABLE => $this->parseVariable(),
+            TokenType::TEXT => new TextNode($this->advance()->value),
+            TokenType::VARIABLE => new VariableNode($this->advance()->value),
             TokenType::TERNARY => $this->parseTernary(),
             TokenType::FUNCTION => $this->parseFunction(),
             TokenType::DIRECTIVE_FOR => $this->parseFor(),
             TokenType::DIRECTIVE_IF => $this->parseIf(false),
             TokenType::DIRECTIVE_UNLESS => $this->parseIf(true),
             TokenType::DIRECTIVE_MATCH => $this->parseMatch(),
-            TokenType::DIRECTIVE_ELSE => throw new ParseException(
-                "Unexpected @else at line {$token->line} - @else must follow @if or @unless"
+            TokenType::DIRECTIVE_CUSTOM => $this->parseDirective(),
+            TokenType::DIRECTIVE_ELSE => throw $this->error(
+                'Unexpected @else',
+                $token,
+                ' - @else must follow @if or @unless'
             ),
-            TokenType::DIRECTIVE_CASE => throw new ParseException(
-                "Unexpected @case at line {$token->line} - @case must be inside @match"
+            TokenType::DIRECTIVE_ELSEIF => throw $this->error(
+                'Unexpected @elseif',
+                $token,
+                ' - @elseif must follow @if or @unless'
             ),
-            TokenType::DIRECTIVE_DEFAULT => throw new ParseException(
-                "Unexpected @default at line {$token->line} - @default must be inside @match"
+            TokenType::DIRECTIVE_CASE => throw $this->error(
+                'Unexpected @case',
+                $token,
+                ' - @case must be inside @match'
             ),
-            TokenType::DIRECTIVE_END => throw new ParseException(
-                "Unexpected @end at line {$token->line}"
+            TokenType::DIRECTIVE_DEFAULT => throw $this->error(
+                'Unexpected @default',
+                $token,
+                ' - @default must be inside @match'
             ),
-            TokenType::EOF => null,
+            TokenType::DIRECTIVE_END => throw $this->error('Unexpected @end', $token),
+            TokenType::EOF => throw $this->error('Unexpected end of template', $token),
         };
     }
 
     /**
-     * Parse text node
-     *
-     * @return \Qoliber\Tsuku\Ast\TextNode
-     */
-    private function parseText(): TextNode
-    {
-        $token = $this->advance();
-        return new TextNode($token->value);
-    }
-
-    /**
-     * Parse variable node
-     *
-     * @return \Qoliber\Tsuku\Ast\VariableNode
-     */
-    private function parseVariable(): VariableNode
-    {
-        $token = $this->advance();
-        return new VariableNode($token->value);
-    }
-
-    /**
-     * Parse ternary expression node
-     *
-     * New format: @?{condition "true" : "false"}
-     * Supports both old syntax with ? and new syntax without
+     * Parse @?{condition "true" : "false"} (also "condition ? true : false")
      *
      * @return \Qoliber\Tsuku\Ast\TernaryNode
+     * @throws \Qoliber\Tsuku\Exception\ParseException
      */
     private function parseTernary(): TernaryNode
     {
         $token = $this->advance();
-        $content = $token->value;
+        $inline = $this->expressions->parseInlineCondition($token->value, $this->positions($token));
 
-        // Parse: "condition ? trueValue : falseValue" OR "condition trueValue : falseValue"
-        // The @? is already consumed by lexer, so we just need to find the :
-        if (!preg_match('/^(.+?)\s*:\s*(.+?)$/s', $content, $matches)) {
-            throw new ParseException(
-                "Invalid ternary syntax at line {$token->line}: '{$content}'. Expected: 'condition \"true\" : \"false\"'"
-            );
-        }
-
-        $leftPart = trim($matches[1]);
-        $falseValue = trim($matches[2]);
-
-        // Check if left part contains ? (old syntax)
-        if (preg_match('/^(.+?)\s*\?\s*(.+?)$/s', $leftPart, $condMatches)) {
-            $condition = trim($condMatches[1]);
-            $trueValue = trim($condMatches[2]);
-        } else {
-            // New syntax: condition followed by value (variable, quoted string, number, or @function(...))
-            // Find the last value: quoted string, @function(...), variable, or number as the true value
-            if (preg_match('/^(.+?)\s+(@[a-zA-Z_][a-zA-Z0-9_]*\(.+?\)|["' . "'" . '][^"' . "'" . ']*["' . "'" . ']|[a-zA-Z_][a-zA-Z0-9_\.]*|[0-9]+\.?[0-9]*)$/su', $leftPart, $parts)) {
-                $condition = trim($parts[1]);
-                $trueValue = trim($parts[2]);
-            } else {
-                throw new ParseException(
-                    "Invalid ternary syntax at line {$token->line}: '{$content}'. Expected: 'condition \"true\" : \"false\"'"
-                );
-            }
-        }
-
-        return new TernaryNode($condition, $trueValue, $falseValue);
+        return new TernaryNode($inline->condition, $inline->trueValue, $inline->falseValue, $inline->expression);
     }
 
     /**
-     * Parse function call node
-     *
-     * New format: @functionName{args}
-     * Token value format: "functionName|args"
+     * Parse function call node; token value format: "functionName|args"
      *
      * @return \Qoliber\Tsuku\Ast\FunctionNode
      */
     private function parseFunction(): FunctionNode
     {
+        [$name, $arguments] = $this->nameAndArguments($this->advance());
+
+        return new FunctionNode($name, $arguments);
+    }
+
+    /**
+     * Parse a registered block directive: @name(args) ... @end
+     *
+     * @return \Qoliber\Tsuku\Ast\DirectiveNode
+     * @throws \Qoliber\Tsuku\Exception\ParseException
+     */
+    private function parseDirective(): DirectiveNode
+    {
         $token = $this->advance();
-        $content = $token->value;
+        [$name, $arguments] = $this->nameAndArguments($token);
 
-        // Parse: "functionName|arg1, arg2, ..."
-        $parts = explode('|', $content, 2);
-        if (count($parts) !== 2) {
-            throw new ParseException(
-                "Invalid function token format at line {$token->line}: '{$content}'"
-            );
-        }
-
-        $functionName = $parts[0];
-        $argsString = $parts[1];
-
-        // Parse arguments - comma separated, respecting quotes
-        $arguments = [];
-        if (trim($argsString) !== '') {
-            $arguments = $this->parseArguments($argsString);
-        }
-
-        return new FunctionNode($functionName, $arguments);
+        return new DirectiveNode($name, $arguments, $this->parseUntilEnd($token, '@' . $name));
     }
 
     /**
-     * Parse space-separated arguments, respecting quoted strings
-     *
-     * @param string $argsString
-     * @return array<string>
+     * @param \Qoliber\Tsuku\Lexer\Token $token
+     * @return array{0: string, 1: array<int, string>}
      */
-    private function parseSpaceSeparatedArguments(string $argsString): array
+    private function nameAndArguments(Token $token): array
     {
-        $arguments = [];
-        $current = '';
-        $inQuotes = false;
-        $quoteChar = null;
-        $length = strlen($argsString);
+        $parts = explode('|', $token->value, 2);
+        $arguments = $parts[1] ?? '';
 
-        for ($i = 0; $i < $length; $i++) {
-            $char = $argsString[$i];
-
-            if (($char === '"' || $char === "'") && ($i === 0 || $argsString[$i - 1] !== '\\')) {
-                if (!$inQuotes) {
-                    $inQuotes = true;
-                    $quoteChar = $char;
-                } elseif ($char === $quoteChar) {
-                    $inQuotes = false;
-                    $quoteChar = null;
-                }
-                $current .= $char;
-            } elseif ($char === ' ' && !$inQuotes) {
-                if ($current !== '') {
-                    $arguments[] = trim($current);
-                    $current = '';
-                }
-            } else {
-                $current .= $char;
-            }
-        }
-
-        if ($current !== '') {
-            $arguments[] = trim($current);
-        }
-
-        return $arguments;
-    }
-
-    /**
-     * Parse comma-separated arguments, respecting quoted strings (for ternary)
-     *
-     * @param string $argsString
-     * @return array<string>
-     */
-    private function parseArguments(string $argsString): array
-    {
-        $arguments = [];
-        $current = '';
-        $inQuotes = false;
-        $quoteChar = null;
-        $parenDepth = 0;
-        $length = strlen($argsString);
-
-        for ($i = 0; $i < $length; $i++) {
-            $char = $argsString[$i];
-
-            if (($char === '"' || $char === "'") && ($i === 0 || $argsString[$i - 1] !== '\\')) {
-                if (!$inQuotes) {
-                    $inQuotes = true;
-                    $quoteChar = $char;
-                } elseif ($char === $quoteChar) {
-                    $inQuotes = false;
-                    $quoteChar = null;
-                }
-                $current .= $char;
-            } elseif ($char === '(' && !$inQuotes) {
-                $parenDepth++;
-                $current .= $char;
-            } elseif ($char === ')' && !$inQuotes) {
-                $parenDepth--;
-                $current .= $char;
-            } elseif ($char === ',' && !$inQuotes && $parenDepth === 0) {
-                $arguments[] = trim($current);
-                $current = '';
-            } else {
-                $current .= $char;
-            }
-        }
-
-        if ($current !== '') {
-            $arguments[] = trim($current);
-        }
-
-        return $arguments;
+        return [$parts[0], trim($arguments) === '' ? [] : Syntax::splitArguments($arguments)];
     }
 
     /**
      * Parse for loop node
      *
      * @return \Qoliber\Tsuku\Ast\ForNode
+     * @throws \Qoliber\Tsuku\Exception\ParseException
      */
     private function parseFor(): ForNode
     {
         $token = $this->advance();
         $args = $token->value;
 
-        // Parse: "items as item" or "items as key, value"
+        // "items as item" or "items as item, key"
         if (!preg_match('/^\s*(\w+(?:\.\w+)*)\s+as\s+(\w+)(?:\s*,\s*(\w+))?\s*$/i', $args, $matches)) {
-            throw new ParseException(
-                "Invalid @tsuku:for syntax at line {$token->line}: '{$args}'. Expected: 'items as item' or 'items as key, value'"
+            throw $this->error(
+                'Invalid @for syntax',
+                $token,
+                ": '{$args}'. Expected: 'items as item' or 'items as item, key'"
             );
         }
 
-        $collection = $matches[1];
-        $itemVar = $matches[2];
-        $keyVar = $matches[3] ?? null;
-
-        // Parse children until @tsuku:end
-        $children = $this->parseUntilEnd();
-
-        return new ForNode($collection, $itemVar, $keyVar, $children);
+        return new ForNode($matches[1], $matches[2], $matches[3] ?? null, $this->parseUntilEnd($token, '@for'));
     }
 
     /**
-     * Parse if/unless node
+     * Parse @if/@unless (and a chain of @elseif)
      *
      * @param bool $negate Whether this is an unless
      * @return \Qoliber\Tsuku\Ast\IfNode
+     * @throws \Qoliber\Tsuku\Exception\ParseException
      */
     private function parseIf(bool $negate): IfNode
     {
         $token = $this->advance();
-        $condition = trim($token->value);
+        $expression = $this->expressions->parseCondition($token->value, $this->positions($token));
+        $directive = $negate ? '@unless' : '@if';
 
-        // Parse children until @else or @end
-        $children = $this->parseUntilElseOrEnd();
+        $children = $this->parseUntil([TokenType::DIRECTIVE_ELSE, TokenType::DIRECTIVE_ELSEIF]);
 
-        // Check if we have an @else
         $elseChildren = [];
-        if ($this->peek()->type === TokenType::DIRECTIVE_ELSE) {
-            $this->advance(); // Consume @else
-            // Parse else children until @end
-            $elseChildren = $this->parseUntilEnd();
-        } elseif ($this->peek()->type === TokenType::DIRECTIVE_END) {
-            $this->advance(); // Consume @end
+        $next = $this->peek();
+        if ($next->type === TokenType::DIRECTIVE_ELSE) {
+            $this->advance();
+            $elseChildren = $this->parseUntilEnd($token, $directive);
+        } elseif ($next->type === TokenType::DIRECTIVE_ELSEIF) {
+            // The nested @if consumes the remaining branches and the single @end
+            $elseChildren = [$this->parseIf(false)];
+        } elseif ($next->type === TokenType::DIRECTIVE_END) {
+            $this->advance();
         } else {
-            throw new ParseException("Expected @else or @end but reached end of file");
+            throw $this->unclosed($token, $directive, 'Expected @else or @end');
         }
 
-        return new IfNode($condition, $negate, $children, $elseChildren);
+        return new IfNode(trim($token->value), $negate, $children, $elseChildren, $expression);
     }
 
     /**
@@ -337,137 +219,131 @@ class Parser
     private function parseMatch(): MatchNode
     {
         $token = $this->advance();
-        $expression = trim($token->value);
-
+        $branches = [TokenType::DIRECTIVE_CASE, TokenType::DIRECTIVE_DEFAULT];
         $cases = [];
         $defaultChildren = [];
 
-        // Parse cases and default until @end
         while (!$this->isAtEnd() && $this->peek()->type !== TokenType::DIRECTIVE_END) {
-            $currentToken = $this->peek();
+            $current = $this->peek();
 
-            // Skip whitespace-only text tokens (for indentation support)
-            if ($currentToken->type === TokenType::TEXT && trim($currentToken->value) === '') {
+            // Whitespace before the first @case is never output
+            if ($current->type === TokenType::TEXT && trim($current->value) === '') {
                 $this->advance();
                 continue;
             }
 
-            if ($currentToken->type === TokenType::DIRECTIVE_CASE) {
-                $cases[] = $this->parseCase();
-            } elseif ($currentToken->type === TokenType::DIRECTIVE_DEFAULT) {
-                $this->advance(); // Consume @default
-                $defaultChildren = $this->parseUntilCaseDefaultOrEnd();
-                break; // @default should be last
+            if ($current->type === TokenType::DIRECTIVE_CASE) {
+                $this->advance();
+                $cases[] = new CaseNode(Syntax::splitArguments(trim($current->value)), $this->parseUntil($branches));
+            } elseif ($current->type === TokenType::DIRECTIVE_DEFAULT) {
+                $this->advance();
+                $defaultChildren = $this->parseUntil($branches);
+                break; // @default must be last
             } else {
-                throw new ParseException(
-                    "Expected @case or @default inside @match at line {$currentToken->line}"
-                );
+                throw $this->error('Expected @case or @default inside @match', $current);
             }
         }
 
-        // Consume @end
-        if ($this->peek()->type === TokenType::DIRECTIVE_END) {
-            $this->advance();
-        } else {
-            throw new ParseException("Expected @end for @match but reached end of file");
+        if ($this->peek()->type !== TokenType::DIRECTIVE_END) {
+            throw $this->unclosed($token, '@match', 'Expected @end');
         }
+        $this->advance();
 
-        return new MatchNode($expression, $cases, $defaultChildren);
+        return new MatchNode(trim($token->value), $cases, $defaultChildren);
     }
 
     /**
-     * Parse @case directive
+     * Parse nodes until @end or one of the given directives (not consumed)
      *
-     * @return \Qoliber\Tsuku\Ast\CaseNode
+     * @param array<int, \Qoliber\Tsuku\Lexer\TokenType> $stopAt
+     * @return array<\Qoliber\Tsuku\Ast\Node>
      * @throws \Qoliber\Tsuku\Exception\ParseException
      */
-    private function parseCase(): CaseNode
-    {
-        $token = $this->advance();
-        $valuesString = trim($token->value);
-
-        // Parse comma-separated values, respecting quotes
-        $values = $this->parseArguments($valuesString);
-
-        // Parse children until next @case, @default, or @end
-        $children = $this->parseUntilCaseDefaultOrEnd();
-
-        return new CaseNode($values, $children);
-    }
-
-    /**
-     * Parse nodes until we hit @case, @default, or @end
-     *
-     * @return array<\Qoliber\Tsuku\Ast\Node>
-     */
-    private function parseUntilCaseDefaultOrEnd(): array
+    private function parseUntil(array $stopAt): array
     {
         $children = [];
 
-        while (
-            !$this->isAtEnd()
-            && $this->peek()->type !== TokenType::DIRECTIVE_END
-            && $this->peek()->type !== TokenType::DIRECTIVE_CASE
-            && $this->peek()->type !== TokenType::DIRECTIVE_DEFAULT
-        ) {
-            $node = $this->parseNode();
-            if ($node !== null) {
-                $children[] = $node;
+        while (!$this->isAtEnd()) {
+            $type = $this->peek()->type;
+            if ($type === TokenType::DIRECTIVE_END || in_array($type, $stopAt, true)) {
+                break;
             }
+            $children[] = $this->parseNode();
         }
 
         return $children;
     }
 
     /**
-     * Parse nodes until we hit @else or @end
+     * Parse nodes until @end and consume it
      *
+     * @param \Qoliber\Tsuku\Lexer\Token $opener
+     * @param string $directive
      * @return array<\Qoliber\Tsuku\Ast\Node>
      * @throws \Qoliber\Tsuku\Exception\ParseException
      */
-    private function parseUntilElseOrEnd(): array
+    private function parseUntilEnd(Token $opener, string $directive): array
     {
-        $children = [];
+        $children = $this->parseUntil([]);
 
-        while (
-            !$this->isAtEnd()
-            && $this->peek()->type !== TokenType::DIRECTIVE_END
-            && $this->peek()->type !== TokenType::DIRECTIVE_ELSE
-        ) {
-            $node = $this->parseNode();
-            if ($node !== null) {
-                $children[] = $node;
-            }
+        if ($this->peek()->type !== TokenType::DIRECTIVE_END) {
+            throw $this->unclosed($opener, $directive, 'Expected @end');
         }
+        $this->advance();
 
         return $children;
     }
 
     /**
-     * Parse nodes until we hit @end
+     * Map offsets inside a token value to template positions.
      *
-     * @return array<\Qoliber\Tsuku\Ast\Node>
-     * @throws \Qoliber\Tsuku\Exception\ParseException
+     * @param \Qoliber\Tsuku\Lexer\Token $token
+     * @return callable(int): array{0: int, 1: int}
      */
-    private function parseUntilEnd(): array
+    private function positions(Token $token): callable
     {
-        $children = [];
-
-        while (!$this->isAtEnd() && $this->peek()->type !== TokenType::DIRECTIVE_END) {
-            $node = $this->parseNode();
-            if ($node !== null) {
-                $children[] = $node;
-            }
+        $sourceMap = $this->sourceMap;
+        if ($sourceMap !== null && $token->valueOffset >= 0) {
+            return static fn(int $offset): array => $sourceMap->position($token->valueOffset + $offset);
         }
 
-        // Consume the @end
-        if ($this->peek()->type === TokenType::DIRECTIVE_END) {
-            $this->advance();
-        } else {
-            throw new ParseException("Expected @end but reached end of file");
-        }
+        return static fn(int $offset): array => [$token->line, $token->column + $offset];
+    }
 
-        return $children;
+    /**
+     * @param string $message
+     * @param \Qoliber\Tsuku\Lexer\Token $token
+     * @param string $suffix
+     * @return \Qoliber\Tsuku\Exception\ParseException
+     */
+    private function error(string $message, Token $token, string $suffix = ''): ParseException
+    {
+        return ParseException::at(
+            "{$message} at line {$token->line}, column {$token->column}{$suffix}",
+            $token->line,
+            $token->column
+        );
+    }
+
+    /**
+     * @param \Qoliber\Tsuku\Lexer\Token $opener
+     * @param string $directive
+     * @param string $expected
+     * @return \Qoliber\Tsuku\Exception\ParseException
+     */
+    private function unclosed(Token $opener, string $directive, string $expected): ParseException
+    {
+        $found = $this->peek();
+        $what = $found->type === TokenType::EOF
+            ? 'reached end of file'
+            : 'found @' . strtolower(substr($found->type->value, strlen('DIRECTIVE_')));
+
+        return ParseException::at(
+            "{$expected} but {$what} at line {$found->line}, column {$found->column}"
+            . " ({$directive} opened at line {$opener->line}, column {$opener->column})",
+            $found->line,
+            $found->column
+        );
     }
 
     /**
@@ -487,10 +363,12 @@ class Parser
      */
     private function advance(): Token
     {
-        if (!$this->isAtEnd()) {
+        $token = $this->tokens[$this->current];
+        if ($token->type !== TokenType::EOF) {
             $this->current++;
         }
-        return $this->tokens[$this->current - 1];
+
+        return $token;
     }
 
     /**

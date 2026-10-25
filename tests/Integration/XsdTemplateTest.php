@@ -24,10 +24,9 @@ class XsdTemplateTest extends TestCase
     <xs:complexType>
       <xs:sequence>
 @for(fields as field)
-        <xs:element name="{field.name}" type="xs:{field.type}"@if(field.required > 0)
- minOccurs="1"@end
-@unless(field.required > 0)
- minOccurs="0"@end
+        <xs:element name="{field.name}" type="xs:{field.type}"\\
+@if(field.required > 0) minOccurs="1"@end\\
+@unless(field.required > 0) minOccurs="0"@end\\
 />
 @end
       </xs:sequence>
