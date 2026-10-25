@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Qoliber\Tsuku\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Qoliber\Tsuku\Tsuku;
 use Qoliber\Tsuku\StrictnessMode;
@@ -282,5 +283,132 @@ Tags: @join(user.tags, ", ")
         $this->assertStringContainsString('missing1', $warningText);
         $this->assertStringContainsString('nonexistent', $warningText);
         $this->assertStringContainsString('missing2', $warningText);
+    }
+
+    public function testWarningsOfAPerCallModeAreReadable(): void
+    {
+        $tsuku = new Tsuku(StrictnessMode::SILENT);
+
+        $tsuku->process('{missing}', [], StrictnessMode::WARNING);
+
+        $this->assertTrue($tsuku->hasWarnings());
+        $this->assertSame(["Variable 'missing' not found in data"], $tsuku->getWarnings());
+
+        // The next call starts over, in the instance's own mode
+        $tsuku->process('{missing}', []);
+        $this->assertFalse($tsuku->hasWarnings());
+        $this->assertSame([], $tsuku->getWarnings());
+    }
+
+    public function testWarningsOfAPerCallModeDoNotLeakIntoTheInstanceMode(): void
+    {
+        $tsuku = new Tsuku(StrictnessMode::WARNING);
+
+        $tsuku->process('{first}', [], StrictnessMode::WARNING);
+        $tsuku->process('{second}', []);
+
+        $this->assertSame(["Variable 'second' not found in data"], $tsuku->getWarnings());
+    }
+
+    public function testWarningsOfAPerCallModeWhileStreamingAreReadable(): void
+    {
+        $tsuku = new Tsuku(StrictnessMode::SILENT);
+
+        $tsuku->processToStream(
+            '@for(rows as row){row.missing}@end',
+            [],
+            [['sku' => 'A']],
+            'rows',
+            static function (string $chunk): void {
+            },
+            StrictnessMode::WARNING
+        );
+
+        $this->assertSame(["Variable 'row.missing' not found in data"], $tsuku->getWarnings());
+    }
+
+    /**
+     * Template, output, and the function the error names (in a ternary value, as in the output,
+     * the outermost call; in a condition, the call that threw)
+     *
+     * @return array<string, array{0: string, 1: string, 2: string}>
+     */
+    public static function failingFunctionInConditionProvider(): array
+    {
+        return [
+            '@if' => ['@if(@boom(x))yes@else no@end', ' no', 'boom'],
+            '@if not' => ['@if(not @boom(x))yes@end', 'yes', 'boom'],
+            '@unless' => ['@unless(@boom(x))yes@end', 'yes', 'boom'],
+            '@elseif' => ['@if(x == 2)two@elseif(@boom(x))boom@else other@end', ' other', 'boom'],
+            'and' => ['@if(x == 1 and @boom(x))yes@else no@end', ' no', 'boom'],
+            'comparison' => ['@if(@boom(x) == "")empty@end', 'empty', 'boom'],
+            'nested in a condition' => ['@if(@upper(@boom(x)) == "")empty@end', 'empty', 'boom'],
+            'ternary condition' => ['@?{@boom(x) "yes" : "no"}', 'no', 'boom'],
+            'ternary value' => ['[@?{x == 1 @boom(x) : "no"}]', '[]', 'boom'],
+            'nested in a ternary value' => ['[@?{x == 1 @upper(@boom(x)) : "no"}]', '[]', 'upper'],
+        ];
+    }
+
+    #[DataProvider('failingFunctionInConditionProvider')]
+    public function testSilentModeTreatsAFailingFunctionInAConditionAsEmpty(string $template, string $expected): void
+    {
+        $tsuku = new Tsuku(StrictnessMode::SILENT);
+        $tsuku->registerFunction('boom', static function (mixed $value): never {
+            throw new \RuntimeException('bad');
+        });
+
+        $this->assertSame($expected, $tsuku->process($template, ['x' => 1]));
+        $this->assertFalse($tsuku->hasWarnings());
+    }
+
+    #[DataProvider('failingFunctionInConditionProvider')]
+    public function testWarningModeRecordsAFailingFunctionInACondition(
+        string $template,
+        string $expected,
+        string $failing
+    ): void {
+        $tsuku = new Tsuku(StrictnessMode::WARNING);
+        $tsuku->registerFunction('boom', static function (mixed $value): never {
+            throw new \RuntimeException('bad');
+        });
+
+        $this->assertSame($expected, $tsuku->process($template, ['x' => 1]));
+        $this->assertSame(["Function '{$failing}' error: bad"], $tsuku->getWarnings());
+    }
+
+    #[DataProvider('failingFunctionInConditionProvider')]
+    public function testStrictModeThrowsForAFailingFunctionInACondition(
+        string $template,
+        string $expected,
+        string $failing
+    ): void {
+        $tsuku = new Tsuku(StrictnessMode::STRICT);
+        $failure = new \RuntimeException('bad');
+        $tsuku->registerFunction('boom', static function (mixed $value) use ($failure): never {
+            throw $failure;
+        });
+
+        try {
+            $tsuku->process($template, ['x' => 1]);
+            $this->fail('expected TsukuException');
+        } catch (TsukuException $e) {
+            $this->assertSame("Function '{$failing}' error: bad", $e->getMessage());
+            $this->assertSame($failure, $e->getPrevious());
+        }
+    }
+
+    public function testABuiltInFunctionFailingInAConditionFollowsTheMode(): void
+    {
+        // An object without __toString() makes @upper() throw an Error
+        $template = '@if(@upper(item) == "X")big@else small@end';
+        $data = ['item' => new \stdClass()];
+
+        $silent = new Tsuku(StrictnessMode::SILENT);
+        $this->assertSame(' small', $silent->process($template, $data));
+
+        $warning = new Tsuku(StrictnessMode::WARNING);
+        $this->assertSame(' small', $warning->process($template, $data));
+        $this->assertCount(1, $warning->getWarnings());
+        $this->assertStringStartsWith("Function 'upper' error: ", $warning->getWarnings()[0]);
     }
 }

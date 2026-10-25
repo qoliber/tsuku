@@ -21,6 +21,9 @@ class Tsuku
 {
     private ProcessingContext $context;
 
+    /** Context of the last process() / processToStream() call, which holds its warnings */
+    private ProcessingContext $lastContext;
+
     public function __construct(
         StrictnessMode $strictnessMode = StrictnessMode::SILENT,
         private readonly DirectiveRegistry $directiveRegistry = new DirectiveRegistry(),
@@ -28,6 +31,7 @@ class Tsuku
         private readonly FunctionRegistry $functionRegistry = new FunctionRegistry(),
     ) {
         $this->context = new ProcessingContext($strictnessMode);
+        $this->lastContext = $this->context;
     }
 
     /**
@@ -40,13 +44,7 @@ class Tsuku
      */
     public function process(string $template, array $data, ?StrictnessMode $strictnessMode = null): string
     {
-        // Clear previous warnings
-        $this->context->clearWarnings();
-
-        // Override strictness mode if provided
-        $context = $strictnessMode !== null
-            ? new ProcessingContext($strictnessMode)
-            : $this->context;
+        $context = $this->contextFor($strictnessMode);
 
         $templateObject = new Template($template);
 
@@ -86,11 +84,7 @@ class Tsuku
         callable $writer,
         ?StrictnessMode $strictnessMode = null
     ): void {
-        $this->context->clearWarnings();
-
-        $context = $strictnessMode !== null
-            ? new ProcessingContext($strictnessMode)
-            : $this->context;
+        $context = $this->contextFor($strictnessMode);
 
         $processor = new StreamingProcessor();
         $processor->process(
@@ -112,7 +106,7 @@ class Tsuku
      */
     public function getWarnings(): array
     {
-        return $this->context->getWarnings();
+        return $this->lastContext->getWarnings();
     }
 
     /**
@@ -122,7 +116,7 @@ class Tsuku
      */
     public function hasWarnings(): bool
     {
-        return $this->context->hasWarnings();
+        return $this->lastContext->hasWarnings();
     }
 
     /**
@@ -145,28 +139,51 @@ class Tsuku
     }
 
     /**
-     * Register a custom formatter
+     * Register a formatter: since 1.4.1 it is registered as a function too, so it
+     * is called as @name(value, ...). It was stored but never used before.
      *
-     * @param string $name
+     * @deprecated 1.4.1 Use registerFunction(), which this now calls.
+     * @param string $name Same rules as registerFunction()
      * @param callable $handler
      * @return self
+     * @throws \InvalidArgumentException For a name that can never be called
      */
     public function registerFormatter(string $name, callable $handler): self
     {
+        $this->functionRegistry->register($name, $handler);
         $this->formatterRegistry->register($name, $handler);
         return $this;
     }
 
     /**
-     * Register a custom function
+     * Register a custom function, called as @name(arguments)
      *
-     * @param string $name
+     * @param string $name Letters, digits and underscores, not starting with a digit; not a
+     *                     built-in directive and not starting with "else", "end" or "default"
+     *                     (other than "default" itself), which the template would read as that directive
      * @param callable $handler
      * @return self
+     * @throws \InvalidArgumentException For a name that can never be called
      */
     public function registerFunction(string $name, callable $handler): self
     {
         $this->functionRegistry->register($name, $handler);
         return $this;
+    }
+
+    /**
+     * The context of one call, with no warnings from an earlier one
+     *
+     * @param \Qoliber\Tsuku\StrictnessMode|null $strictnessMode Override for this call
+     * @return \Qoliber\Tsuku\ProcessingContext
+     */
+    private function contextFor(?StrictnessMode $strictnessMode): ProcessingContext
+    {
+        $this->context->clearWarnings();
+        $this->lastContext = $strictnessMode !== null
+            ? new ProcessingContext($strictnessMode)
+            : $this->context;
+
+        return $this->lastContext;
     }
 }

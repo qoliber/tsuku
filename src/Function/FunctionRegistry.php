@@ -19,6 +19,12 @@ use Qoliber\Tsuku\Support\DataAccessor;
 
 class FunctionRegistry
 {
+    /** Built-in directives: @name(...) with one of these names is read as the directive */
+    private const DIRECTIVES = ['for', 'if', 'unless', 'elseif', 'else', 'match', 'case', 'end'];
+
+    /** Directives the lexer recognises by prefix, so @endsWith(...) is read as @end */
+    private const DIRECTIVE_PREFIXES = ['else', 'end', 'default'];
+
     /** @var array<string, callable> */
     private array $functions = [];
 
@@ -28,14 +34,19 @@ class FunctionRegistry
     }
 
     /**
-     * Register a function
+     * Register a function, called as @name(arguments)
      *
-     * @param string $name
+     * @param string $name Letters, digits and underscores, not starting with a digit; not a
+     *                     built-in directive and not starting with "else", "end" or "default"
+     *                     (other than "default" itself), which the template would read as that directive
      * @param callable $handler
      * @return void
+     * @throws \InvalidArgumentException For a name that can never be called
      */
     public function register(string $name, callable $handler): void
     {
+        self::assertCallableName($name);
+
         $this->functions[$name] = $handler;
     }
 
@@ -80,31 +91,36 @@ class FunctionRegistry
         $this->register('capitalize', fn($str) => ucfirst((string) $str));
         $this->register('trim', fn($str) => trim((string) $str));
         $this->register('concat', fn(...$args) => implode('', $args));
-        $this->register('substr', fn($str, $start, $length = null) =>
-            $length !== null ? substr($str, (int) $start, (int) $length) : substr($str, (int) $start));
-        $this->register('replace', fn($str, $search, $replace) => str_replace($search, $replace, $str));
+        $this->register('substr', fn($str, $start, $length = null) => $length !== null
+            ? substr(self::string($str), (int) $start, (int) $length)
+            : substr(self::string($str), (int) $start));
+        $this->register('replace', fn($str, $search, $replace) => str_replace(
+            is_array($search) ? $search : self::string($search),
+            is_array($replace) ? $replace : self::string($replace),
+            is_array($str) ? $str : self::string($str)
+        ));
 
         // Number functions
         $this->register('abs', fn($num) => abs((float) $num));
         $this->register('round', fn($num, $precision = 0) => round((float) $num, (int) $precision));
         $this->register('ceil', fn($num) => ceil((float) $num));
         $this->register('floor', fn($num) => floor((float) $num));
-        $this->register('number_format', fn($num, $decimals = 0, $decPoint = '.', $thousandsSep = ',') =>
-            number_format((float) $num, (int) $decimals, $decPoint, $thousandsSep));
-        $this->register('number', fn($num, $decimals = 0, $decPoint = '.', $thousandsSep = ',') =>
-            number_format((float) $num, (int) $decimals, $decPoint, $thousandsSep));
+        $number = fn($num, $decimals = 0, $decPoint = '.', $thousandsSep = ',') =>
+            number_format((float) $num, (int) $decimals, self::string($decPoint), self::string($thousandsSep));
+        $this->register('number_format', $number);
+        $this->register('number', $number);
 
         // Date functions
         $this->register('date', fn($format, $timestamp = null) =>
-            date($format, $timestamp !== null ? (int) $timestamp : time()));
-        $this->register('strtotime', fn($str) => strtotime($str));
+            date(self::string($format), $timestamp !== null ? (int) $timestamp : time()));
+        $this->register('strtotime', fn($str) => strtotime(self::string($str)));
 
         // Type functions
         $this->register('default', fn($value, $default) => empty($value) ? $default : $value);
         $this->register('length', fn($value) => is_array($value) ? count($value) : strlen((string) $value));
 
         // Array functions
-        $this->register('join', fn($array, $glue = ',') => implode($glue, (array) $array));
+        $this->register('join', fn($array, $glue = ',') => implode(self::string($glue), (array) $array));
         $this->register('first', function ($array) {
             if (!is_array($array) || count($array) === 0) {
                 return null;
@@ -173,5 +189,45 @@ class FunctionRegistry
         }
 
         return explode($delimiter, $string);
+    }
+
+    /**
+     * @param string $name
+     * @return void
+     * @throws \InvalidArgumentException
+     */
+    private static function assertCallableName(string $name): void
+    {
+        if (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*\z/', $name) !== 1) {
+            throw new \InvalidArgumentException(
+                "Invalid function name '{$name}': use letters, digits and underscores, not starting with a digit"
+            );
+        }
+
+        if (in_array($name, self::DIRECTIVES, true)) {
+            throw new \InvalidArgumentException(
+                "'{$name}' is a built-in directive and cannot be registered as a function"
+            );
+        }
+
+        foreach (self::DIRECTIVE_PREFIXES as $prefix) {
+            if ($name !== 'default' && str_starts_with($name, $prefix)) {
+                throw new \InvalidArgumentException(
+                    "Function name '{$name}' cannot be called: @{$name}(...) is read as the @{$prefix} directive"
+                    . " followed by text. Choose a name that does not start with '{$prefix}'"
+                );
+            }
+        }
+    }
+
+    /**
+     * A function argument as a string: numbers and booleans from the data are accepted, null is ""
+     *
+     * @param mixed $value
+     * @return string
+     */
+    private static function string(mixed $value): string
+    {
+        return $value === null ? '' : DataAccessor::toString($value);
     }
 }

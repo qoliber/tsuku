@@ -75,4 +75,19 @@ class TsukuTest extends TestCase
 
         $this->assertSame($this->tsuku, $result);
     }
+
+    public function testARegisteredFormatterIsCalledAsAFunction(): void
+    {
+        $this->tsuku->registerFormatter('money', fn($value) => '$' . $value);
+
+        $this->assertSame('$5', $this->tsuku->process('@money(price)', ['price' => 5]));
+        $this->assertSame('cheap', $this->tsuku->process('@if(@money(price) == "$5")cheap@end', ['price' => 5]));
+    }
+
+    public function testARegisteredFormatterFollowsTheFunctionNameRules(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->tsuku->registerFormatter('my-money', fn($value) => '$' . $value);
+    }
 }

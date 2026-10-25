@@ -23,8 +23,15 @@ class ExpressionEvaluator
 
     private ?ExpressionParser $parser = null;
 
+    /**
+     * @param \Qoliber\Tsuku\Function\FunctionRegistry|null $functionRegistry
+     * @param \Closure(string, \Throwable): mixed|null $onFunctionError Called with the function name and
+     *        the error when a function throws; its return value is used as the function's result.
+     *        Without it the error is rethrown.
+     */
     public function __construct(
         private readonly ?FunctionRegistry $functionRegistry = null,
+        private readonly ?\Closure $onFunctionError = null,
     ) {
     }
 
@@ -75,6 +82,7 @@ class ExpressionEvaluator
      * @param array<int, mixed> $arguments
      * @return mixed
      * @throws \Qoliber\Tsuku\Exception\FunctionNotFoundException
+     * @throws \Throwable What the function threw, when there is no error handler
      */
     public function callFunction(string $name, array $arguments): mixed
     {
@@ -82,7 +90,15 @@ class ExpressionEvaluator
             throw FunctionNotFoundException::named($name, "Unknown function '@{$name}' in condition");
         }
 
-        return $this->functionRegistry->execute($name, $arguments);
+        try {
+            return $this->functionRegistry->execute($name, $arguments);
+        } catch (\Throwable $e) {
+            if ($this->onFunctionError === null) {
+                throw $e;
+            }
+
+            return ($this->onFunctionError)($name, $e);
+        }
     }
 
     /**

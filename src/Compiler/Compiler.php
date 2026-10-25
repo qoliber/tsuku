@@ -54,7 +54,7 @@ class Compiler implements NodeVisitor, DirectiveVisitor
         private readonly ?DirectiveRegistry $directiveRegistry = null,
     ) {
         $this->functionRegistry = $functionRegistry ?? new FunctionRegistry();
-        $this->evaluator = new ExpressionEvaluator($this->functionRegistry);
+        $this->evaluator = new ExpressionEvaluator($this->functionRegistry, $this->functionFailed(...));
         $this->context = $context ?? new ProcessingContext(StrictnessMode::SILENT);
     }
 
@@ -237,7 +237,7 @@ class Compiler implements NodeVisitor, DirectiveVisitor
 
             return is_string($result) ? $result : DataAccessor::toString($result);
         } catch (\Throwable $e) {
-            return $this->handleError("Function '{$node->name}' error: {$e->getMessage()}");
+            return $this->handleError("Function '{$node->name}' error: {$e->getMessage()}", $e);
         }
     }
 
@@ -267,7 +267,7 @@ class Compiler implements NodeVisitor, DirectiveVisitor
 
             return DataAccessor::toString($handler($body, ...$arguments));
         } catch (\Throwable $e) {
-            return $this->handleError("Directive '{$node->name}' error: {$e->getMessage()}");
+            return $this->handleError("Directive '{$node->name}' error: {$e->getMessage()}", $e);
         }
     }
 
@@ -299,7 +299,7 @@ class Compiler implements NodeVisitor, DirectiveVisitor
             (str_starts_with($expression, '"') && str_ends_with($expression, '"'))
             || (str_starts_with($expression, "'") && str_ends_with($expression, "'"))
         ) {
-            return substr($expression, 1, -1);
+            return Syntax::unquote($expression);
         }
 
         if (is_numeric($expression)) {
@@ -320,8 +320,8 @@ class Compiler implements NodeVisitor, DirectiveVisitor
         $value = trim($value);
 
         // String literal with quotes
-        if (preg_match('/^["\'](.*)["\']$/', $value, $matches)) {
-            return $matches[1];
+        if (preg_match('/^["\'](.*)["\']$/', $value) === 1) {
+            return Syntax::unquote($value);
         }
 
         // Number (kept as the literal string)
@@ -349,17 +349,24 @@ class Compiler implements NodeVisitor, DirectiveVisitor
     {
         $value = trim($value);
 
-        if (preg_match('/^["\'](.*)["\']$/', $value, $matches)) {
-            return $matches[1];
+        if (preg_match('/^["\'](.*)["\']$/', $value) === 1) {
+            return Syntax::unquote($value);
         }
 
         if (is_numeric($value)) {
             return $value;
         }
 
-        $call = $this->nestedCall($value);
-        if ($call !== null && $this->functionRegistry->has($call[0])) {
-            return DataAccessor::toString($this->functionRegistry->execute($call[0], $call[1]));
+        if (preg_match('/^@([a-zA-Z_][a-zA-Z0-9_]*)\(/', $value, $matches) === 1) {
+            // Errors are named after the outermost call, as for a function in the output
+            try {
+                $call = $this->nestedCall($value);
+                if ($call !== null && $this->functionRegistry->has($call[0])) {
+                    return DataAccessor::toString($this->functionRegistry->execute($call[0], $call[1]));
+                }
+            } catch (\Throwable $e) {
+                return $this->handleError("Function '{$matches[1]}' error: {$e->getMessage()}", $e);
+            }
         }
 
         return DataAccessor::toString(DataAccessor::get($this->data, $value) ?? '');
@@ -419,16 +426,32 @@ class Compiler implements NodeVisitor, DirectiveVisitor
     }
 
     /**
+     * A function inside a condition threw: handled like a function in the output, its result is null
+     *
+     * @param string $name
+     * @param \Throwable $error
+     * @return mixed Always null
+     * @throws \Qoliber\Tsuku\Exception\TsukuException In strict mode
+     */
+    private function functionFailed(string $name, \Throwable $error): mixed
+    {
+        $this->handleError("Function '{$name}' error: {$error->getMessage()}", $error);
+
+        return null;
+    }
+
+    /**
      * Throw, record a warning or ignore, depending on the strictness mode
      *
      * @param string $message
+     * @param \Throwable|null $previous The error that caused it
      * @return string Always empty (the output of the failed piece)
      * @throws \Qoliber\Tsuku\Exception\TsukuException
      */
-    private function handleError(string $message): string
+    private function handleError(string $message, ?\Throwable $previous = null): string
     {
         match ($this->context->getStrictnessMode()) {
-            StrictnessMode::STRICT => throw new TsukuException($message),
+            StrictnessMode::STRICT => throw new TsukuException($message, 0, $previous),
             StrictnessMode::WARNING => $this->context->addWarning($message),
             StrictnessMode::SILENT => null,
         };

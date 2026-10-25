@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Qoliber\Tsuku\Exception\FunctionNotFoundException;
 use Qoliber\Tsuku\Exception\ParseException;
 use Qoliber\Tsuku\Exception\TsukuException;
+use Qoliber\Tsuku\StrictnessMode;
 use Qoliber\Tsuku\Tsuku;
 
 /**
@@ -252,10 +253,15 @@ class ConditionExpressionTest extends TestCase
         $this->assertSame('new', $tsuku->process('@if(@isNew(p.tags))new@end', self::data()));
     }
 
-    public function testFunctionErrorInConditionPropagatesAsIn130(): void
+    public function testFunctionErrorInConditionFollowsTheStrictnessMode(): void
     {
-        $this->expectException(\ArgumentCountError::class);
+        // 1.3.0 and 1.4.0 let the ArgumentCountError escape in every mode
+        $template = '@if(@substr(p.sku) == "A")Y@else N@end';
 
-        (new Tsuku())->process('@if(@substr(p.sku) == "A")Y@end', self::data());
+        $this->assertSame(' N', (new Tsuku())->process($template, self::data()));
+
+        $this->expectException(TsukuException::class);
+        $this->expectExceptionMessage("Function 'substr' error: ");
+        (new Tsuku(StrictnessMode::STRICT))->process($template, self::data());
     }
 }

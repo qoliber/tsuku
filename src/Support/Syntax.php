@@ -122,6 +122,22 @@ final class Syntax
     }
 
     /**
+     * The text of a string literal without its quotes.
+     *
+     * Inside "...", \" is a double quote; inside '...', \' is a single quote.
+     * Every other backslash is kept as written.
+     *
+     * @param string $literal The literal including its opening and closing quote
+     * @return string
+     */
+    public static function unquote(string $literal): string
+    {
+        $quote = $literal[0];
+
+        return str_replace('\\' . $quote, $quote, substr($literal, 1, -1));
+    }
+
+    /**
      * Whether the character at $offset opens a string literal.
      *
      * @param string $text

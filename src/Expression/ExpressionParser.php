@@ -16,6 +16,7 @@ namespace Qoliber\Tsuku\Expression;
 use Qoliber\Tsuku\Exception\FunctionNotFoundException;
 use Qoliber\Tsuku\Exception\ParseException;
 use Qoliber\Tsuku\Function\FunctionRegistry;
+use Qoliber\Tsuku\Support\Syntax;
 
 /**
  * Parses conditions of @if/@unless/@elseif and @?{...}.
@@ -375,7 +376,7 @@ final class ExpressionParser
                 }
                 $tokens[] = [
                     'type' => 'string',
-                    'text' => substr($source, $offset + 1, $close - $offset - 1),
+                    'text' => Syntax::unquote(substr($source, $offset, $close - $offset + 1)),
                     'start' => $offset,
                     'end' => $close + 1,
                 ];

@@ -19,7 +19,7 @@ Perfect for e-commerce exports, API responses, configuration files, and data tra
 - 🎭 **Widget support**: Build Magento-style widgets with custom functions
 - 🛠️ **Clean architecture**: Lexer → Parser → Compiler pipeline (AST-based)
 - 🚀 **PHP 8.1+**: Modern PHP with zero dependencies
-- ✅ **Production-ready**: 848 tests (including characterization tests against 1.3.0), 99.4% line coverage, 98.7% mutation score
+- ✅ **Production-ready**: 944 tests (including characterization tests against 1.3.0), 99.4% line coverage, 98.8% mutation score
 - 📦 **Predictable whitespace**: directive-only lines vanish, content lines are kept exactly as written
 - ⚡ **Fast**: Single-pass compilation, efficient AST walking
 - 🔒 **Type-safe**: Full PHP 8.1+ type hints and strict types
