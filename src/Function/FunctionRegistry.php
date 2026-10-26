@@ -141,8 +141,8 @@ class FunctionRegistry
         $xml = fn($str) => htmlspecialchars((string) $str, ENT_QUOTES | ENT_XML1, 'UTF-8');
         $json = fn($str) => json_encode((string) $str, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         $url = fn($str) => rawurlencode((string) $str);
-        $csv = fn($str) => str_contains((string) $str, ',') || str_contains((string) $str, '"')
-            || str_contains((string) $str, "\n")
+        // Quoted when it holds a delimiter, a quote or a line break: CSV readers end a record at "\r" too
+        $csv = fn($str) => strpbrk((string) $str, ",\"\r\n") !== false
             ? '"' . str_replace('"', '""', (string) $str) . '"'
             : (string) $str;
 

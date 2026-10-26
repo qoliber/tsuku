@@ -108,6 +108,17 @@ class EscaperTest extends TestCase
         $this->assertSame("\"Line 1\nLine 2\"", $result);
     }
 
+    /**
+     * A bare carriage return ends a record for CSV readers too, so it is quoted like a line feed
+     */
+    public function testCsvQuotesCarriageReturns(): void
+    {
+        foreach (["alpha\rbeta", "alpha\r\nbeta"] as $text) {
+            $this->assertSame('"' . $text . '"', $this->tsuku->process('@csv(text)', ['text' => $text]));
+            $this->assertSame('"' . $text . '"', $this->tsuku->process('@escape(text, "csv")', ['text' => $text]));
+        }
+    }
+
     public function testCsvNoEscapeSimpleText(): void
     {
         $template = '@csv(text)';

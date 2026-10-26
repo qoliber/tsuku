@@ -19,7 +19,7 @@ Perfect for e-commerce exports, API responses, configuration files, and data tra
 - 🎭 **Widget support**: Build Magento-style widgets with custom functions
 - 🛠️ **Clean architecture**: Lexer → Parser → Compiler pipeline (AST-based)
 - 🚀 **PHP 8.1+**: Modern PHP with zero dependencies
-- ✅ **Production-ready**: 944 tests (including characterization tests against 1.3.0), 99.4% line coverage, 98.8% mutation score
+- ✅ **Production-ready**: 960 tests (including characterization tests against 1.3.0), 99.4% line coverage, 98.8% mutation score
 - 📦 **Predictable whitespace**: directive-only lines vanish, content lines are kept exactly as written
 - ⚡ **Fast**: Single-pass compilation, efficient AST walking
 - 🔒 **Type-safe**: Full PHP 8.1+ type hints and strict types
@@ -179,6 +179,7 @@ fclose($handle);
 - Template must contain exactly **one top-level** `@for` over the streaming variable. Multiple matches or nesting inside `@if`/`@for` throws.
 - The streamed iterable is consumed once. Generators cannot be rewound.
 - Memory usage is bounded by the size of the largest single piece (header, footer, or one row), regardless of total row count.
+- In `WARNING` mode at most 1,000 warnings are kept per call (`ProcessingContext::WARNING_LIMIT`), so a warning on every row does not grow memory either; `getWarningCount()` returns the total.
 
 ## Real-World Examples
 

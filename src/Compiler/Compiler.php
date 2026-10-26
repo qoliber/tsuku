@@ -320,7 +320,7 @@ class Compiler implements NodeVisitor, DirectiveVisitor
         $value = trim($value);
 
         // String literal with quotes
-        if (preg_match('/^["\'](.*)["\']$/', $value) === 1) {
+        if (preg_match('/^["\'](.*)["\']$/s', $value) === 1) {
             return Syntax::unquote($value);
         }
 
@@ -349,7 +349,7 @@ class Compiler implements NodeVisitor, DirectiveVisitor
     {
         $value = trim($value);
 
-        if (preg_match('/^["\'](.*)["\']$/', $value) === 1) {
+        if (preg_match('/^["\'](.*)["\']$/s', $value) === 1) {
             return Syntax::unquote($value);
         }
 

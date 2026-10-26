@@ -50,6 +50,35 @@ class QuotedStringEscapeTest extends TestCase
     }
 
     /**
+     * A quoted string may span lines; its line breaks are part of the value
+     *
+     * @return array<string, array{0: string, 1: array<string, mixed>, 2: string}>
+     */
+    public static function multilineLiteralProvider(): array
+    {
+        return [
+            'function argument' => ["@concat(\"alpha\nbeta\")", [], "alpha\nbeta"],
+            'single-quoted argument' => ["@concat('alpha\nbeta')", [], "alpha\nbeta"],
+            'CRLF inside the string' => ["@concat(\"alpha\r\nbeta\")", [], "alpha\r\nbeta"],
+            'several arguments' => ["@concat(\"a\nb\", \"-\", 'c\nd')", [], "a\nb-c\nd"],
+            'nested call' => ["@upper(@concat(\"alpha\nbeta\"))", [], "ALPHA\nBETA"],
+            'escaped quote on the next line' => ["@concat(\"say\n\\\"hi\\\"\")", [], "say\n\"hi\""],
+            'ternary value' => ["@?{flag \"line 1\nline 2\" : \"no\"}", ['flag' => true], "line 1\nline 2"],
+            'ternary false value' => ["@?{flag 'yes' : 'line 1\nline 2'}", ['flag' => false], "line 1\nline 2"],
+            'directive argument' => ["@wrap(\"<\n\", \"\n>\")body@end", [], "<\nbody\n>"],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    #[DataProvider('multilineLiteralProvider')]
+    public function testMultilineQuotedLiterals(string $template, array $data, string $expected): void
+    {
+        $this->assertSame($expected, $this->tsuku->process($template, $data));
+    }
+
+    /**
      * @param array<string, mixed> $data
      */
     #[DataProvider('escapedQuoteProvider')]

@@ -124,6 +124,7 @@ class FunctionRegistryTest extends TestCase
         $this->assertSame('"a ""b"" & <c>, d"', $this->registry->execute('escape', [$value, 'csv']));
         $this->assertSame('plain', $this->registry->execute('csv', ['plain']));
         $this->assertSame("\"two\nlines\"", $this->registry->execute('csv', ["two\nlines"]));
+        $this->assertSame("\"carriage\rreturn\"", $this->registry->execute('csv', ["carriage\rreturn"]));
         $this->assertSame('"say ""hi"""', $this->registry->execute('csv', ['say "hi"']));
     }
 

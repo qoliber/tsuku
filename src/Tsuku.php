@@ -100,7 +100,7 @@ class Tsuku
     }
 
     /**
-     * Get warnings from last processing
+     * Get warnings from last processing, the first ProcessingContext::WARNING_LIMIT of them
      *
      * @return array<string>
      */
@@ -117,6 +117,17 @@ class Tsuku
     public function hasWarnings(): bool
     {
         return $this->lastContext->hasWarnings();
+    }
+
+    /**
+     * Count the warnings of the last processing, also those past
+     * ProcessingContext::WARNING_LIMIT that getWarnings() does not return
+     *
+     * @return int
+     */
+    public function getWarningCount(): int
+    {
+        return $this->lastContext->getWarningCount();
     }
 
     /**

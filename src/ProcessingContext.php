@@ -15,8 +15,16 @@ namespace Qoliber\Tsuku;
 
 class ProcessingContext
 {
+    /**
+     * Warnings kept per call; later ones are only counted, so a warning on every
+     * row of a streamed export does not grow memory with the row count
+     */
+    public const WARNING_LIMIT = 1000;
+
     /** @var array<string> */
     private array $warnings = [];
+
+    private int $warningCount = 0;
 
     public function __construct(
         private readonly StrictnessMode $strictnessMode = StrictnessMode::SILENT,
@@ -41,11 +49,14 @@ class ProcessingContext
      */
     public function addWarning(string $message): void
     {
-        $this->warnings[] = $message;
+        $this->warningCount++;
+        if (count($this->warnings) < self::WARNING_LIMIT) {
+            $this->warnings[] = $message;
+        }
     }
 
     /**
-     * Get all warnings
+     * Get the warnings, the first WARNING_LIMIT of them
      *
      * @return array<string>
      */
@@ -62,6 +73,17 @@ class ProcessingContext
     public function clearWarnings(): void
     {
         $this->warnings = [];
+        $this->warningCount = 0;
+    }
+
+    /**
+     * Count every warning, also those past WARNING_LIMIT that were not kept
+     *
+     * @return int
+     */
+    public function getWarningCount(): int
+    {
+        return $this->warningCount;
     }
 
     /**
@@ -71,6 +93,6 @@ class ProcessingContext
      */
     public function hasWarnings(): bool
     {
-        return count($this->warnings) > 0;
+        return $this->warningCount > 0;
     }
 }

@@ -6,6 +6,7 @@ namespace Qoliber\Tsuku\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Qoliber\Tsuku\ProcessingContext;
 use Qoliber\Tsuku\Tsuku;
 use Qoliber\Tsuku\StrictnessMode;
 use Qoliber\Tsuku\Exception\TsukuException;
@@ -308,6 +309,48 @@ Tags: @join(user.tags, ", ")
         $tsuku->process('{second}', []);
 
         $this->assertSame(["Variable 'second' not found in data"], $tsuku->getWarnings());
+    }
+
+    /**
+     * Streaming keeps memory bounded in WARNING mode too: a warning on every row
+     * keeps only the first WARNING_LIMIT messages, and counts them all
+     */
+    public function testStreamingKeepsAtMostTheWarningLimitAndCountsEveryWarning(): void
+    {
+        $tsuku = new Tsuku(StrictnessMode::WARNING);
+        $rows = (static function (): \Generator {
+            for ($i = 1; $i <= 1500; $i++) {
+                yield ['sku' => "SKU-{$i}"];
+            }
+        })();
+
+        $tsuku->processToStream(
+            '@for(rows as row){row.sku}{row.missing}@end',
+            [],
+            $rows,
+            'rows',
+            static function (string $chunk): void {
+            }
+        );
+
+        $this->assertCount(ProcessingContext::WARNING_LIMIT, $tsuku->getWarnings());
+        $this->assertSame(1500, $tsuku->getWarningCount());
+
+        // The next call starts the count over
+        $tsuku->process('{other}', []);
+        $this->assertSame(["Variable 'other' not found in data"], $tsuku->getWarnings());
+        $this->assertSame(1, $tsuku->getWarningCount());
+    }
+
+    public function testWarningCountOfAPerCallMode(): void
+    {
+        $tsuku = new Tsuku(StrictnessMode::SILENT);
+
+        $tsuku->process('{a}{b}{a}', [], StrictnessMode::WARNING);
+        $this->assertSame(3, $tsuku->getWarningCount());
+
+        $tsuku->process('{a}', []);
+        $this->assertSame(0, $tsuku->getWarningCount());
     }
 
     public function testWarningsOfAPerCallModeWhileStreamingAreReadable(): void
